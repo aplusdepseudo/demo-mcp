@@ -8,7 +8,8 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "inspect": "npx -y @modelcontextprotocol/inspector"
   },
   "keywords": [],
   "author": "Nicolas ANTOINE",
