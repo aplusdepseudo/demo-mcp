@@ -101,3 +101,76 @@ build/
 ## 💡 Notes
 
 This is a **demo/mock implementation** intended for experimentation and learning. Feel free to adapt it as a starting point for your own MCP integrations. 🙌
+
+## ☁️ Deploy to Azure Web App
+
+This project can be deployed to an **Azure Web App (Node.js)** with minimal configuration.
+
+### Prerequisites
+
+- An Azure subscription
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed
+- A Linux **App Service Plan** (B1 or higher recommended)
+
+### 1) Create the Azure Web App
+
+```bash
+az group create --name <resource-group> --location <region>
+az appservice plan create --name <plan-name> --resource-group <resource-group> --sku B1 --is-linux
+az webapp create --name <app-name> --resource-group <resource-group> --plan <plan-name> --runtime "NODE:22-lts"
+```
+
+### 2) Configure app settings
+
+Azure Web App automatically sets the `PORT` environment variable — the server already picks it up.
+
+The MCP SDK includes DNS rebinding protection that validates the `Host` header. On Azure, the incoming host is your `*.azurewebsites.net` domain. The server reads `WEBSITE_HOSTNAME` (automatically set by Azure) to allow it:
+
+```bash
+# WEBSITE_HOSTNAME is set automatically by Azure — no manual action needed.
+```
+
+If you use a custom domain, add it via the `WEBSITE_HOSTNAME` override or adjust `ALLOWED_HOSTS` accordingly.
+
+### 3) Build and deploy
+
+**Option A — Deploy with Azure CLI (ZIP deploy):**
+
+```bash
+npm install
+npm run build
+az webapp deploy --name <app-name> --resource-group <resource-group> --src-path . --type zip
+```
+
+**Option B — Deploy via GitHub Actions:**
+
+Set up continuous deployment from your repository in the Azure Portal under **Deployment Center**, or use the Azure CLI:
+
+```bash
+az webapp deployment source config --name <app-name> --resource-group <resource-group> --repo-url <github-repo-url> --branch main
+```
+
+Azure's Oryx build system will automatically run `npm install` and `npm run build` during deployment.
+
+### 4) Verify the deployment
+
+```bash
+curl https://<app-name>.azurewebsites.net/
+# Expected: {"status":"up","message":"Demo MCP server running"}
+```
+
+### 5) Connect an MCP client
+
+Point your MCP client to:
+
+```
+https://<app-name>.azurewebsites.net/mcp
+```
+
+### Key configuration notes
+
+| Setting | Description |
+|---|---|
+| `PORT` | Set automatically by Azure; the server binds to it |
+| `WEBSITE_HOSTNAME` | Set automatically by Azure; used for Host header validation |
+| `SCM_DO_BUILD_DURING_DEPLOYMENT` | Set to `true` if you want Oryx to build on deploy |
