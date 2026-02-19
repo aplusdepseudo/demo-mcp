@@ -11,7 +11,8 @@ const MCP_PORT = process.env.MCP_PORT ? Number.parseInt(process.env.MCP_PORT, 10
 const AUTH_PORT = process.env.MCP_AUTH_PORT ? Number.parseInt(process.env.MCP_AUTH_PORT, 10) : 3001;
 
 export function startServer() {
-    const app = createMcpExpressApp();
+    const allowedHosts = process.env.WEBSITE_HOSTNAME ? process.env.WEBSITE_HOSTNAME.split(',') : ['localhost', '127.0.0.1', '[::1]'];
+    const app = createMcpExpressApp({ allowedHosts });
 
     // Enable CORS for browser-based clients (demo only)
     app.use(cors());
