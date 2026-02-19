@@ -9,8 +9,7 @@ build/
 .npm/
 
 # IDE/editor files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 .idea/
 
 # Misc
