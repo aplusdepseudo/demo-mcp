@@ -15,12 +15,11 @@ param subnetId string
 param tags object = {}
 
 // ─── Variables ────────────────────────────────────────────────────────────────
-
-var projectName = '${prefix}-foundry-project'
-var foundryName = '${prefix}-foundry-core'
+var foundryName = '${prefix}-aif'
+var projectName = '${prefix}-aif-proj'
 
 // ─── Azure AI Foundry ──────
-resource foundryCore 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' = {
+resource foundryCore 'Microsoft.CognitiveServices/accounts@2025-09-01' = {
   name: foundryName
   location: location
   tags: tags
@@ -28,9 +27,18 @@ resource foundryCore 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' =
   sku: {
     name: 'S0'
   }
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
+    apiProperties: {}
     customSubDomainName: foundryName
     publicNetworkAccess: 'Enabled'
+    networkAcls: {
+      defaultAction: 'Allow'
+      virtualNetworkRules: []
+      ipRules: []
+    }
     networkInjections: [
       {
         scenario: 'agent'
@@ -38,20 +46,24 @@ resource foundryCore 'Microsoft.CognitiveServices/accounts@2025-10-01-preview' =
         useMicrosoftManagedNetwork: false
       }
     ]
+    allowProjectManagement: true
+    defaultProject: projectName
+    associatedProjects: [
+      projectName
+    ]
   }
 }
 
-// ─── Azure AI Foundry Project ─────────────────────────────────────────────────
-resource project 'Microsoft.CognitiveServices/accounts/projects@2025-10-01-preview' = {
+resource project 'Microsoft.CognitiveServices/accounts/projects@2025-09-01' = {
   parent: foundryCore
   name: projectName
   location: location
+  kind: 'AIServices'
   identity: {
     type: 'SystemAssigned'
   }
   properties: {
-    description: 'Azure AI Foundry Project deployed with prefix: ${prefix}'
-    displayName: projectName
+    description: 'Default project created with the resource'
+    displayName: 'Default project for ${prefix}'
   }
-  tags: tags
 }

@@ -177,7 +177,7 @@ https://<app-name>.azurewebsites.net/mcp
 
 ## 🏗️ Deploy Infrastructure with Bicep
 
-The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a project, using network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
+The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a default project and network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
 
 ### Prerequisites
 
@@ -189,18 +189,18 @@ The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundr
 
 | Resource | Description |
 |---|---|
-| **AI Foundry** | Cognitive Services account (kind `AIServices`) with network injection on the provided subnet |
-| **AI Foundry Project** | Project (child resource) linked to the AI Foundry instance |
+| **AI Foundry** | Cognitive Services account (kind `AIServices`) with system-assigned identity, project management enabled, and network injection on the provided subnet |
+| **AI Foundry Project** | Default project (child resource) automatically created with the Foundry instance |
 
 ### 1) Edit the parameters file
 
-Open `infra/main.bicepparam` and replace the placeholder values with your own:
+Open `infra/foundryVNETInjection.bicepparam` and replace the placeholder values with your own:
 
 ```bicep
-using 'main.bicep'
+using 'foundryVNETInjection.bicep'
 
 param prefix = 'myapp'                    // Prefix for all resource names
-param location = 'swedencentral'
+param location = 'norwayeast'
 param subnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
 
 param tags = {
@@ -220,8 +220,8 @@ az group create --name <resource-group> --location <region>
 ```bash
 az deployment group create \
   --resource-group <resource-group> \
-  --template-file infra/main.bicep \
-  --parameters infra/main.bicepparam
+  --template-file infra/foundryVNETInjection.bicep \
+  --parameters infra/foundryVNETInjection.bicepparam
 ```
 
 ### 4) Or deploy with inline parameters
@@ -231,7 +231,7 @@ You can also pass parameters directly on the command line:
 ```bash
 az deployment group create \
   --resource-group <resource-group> \
-  --template-file infra/main.bicep \
+  --template-file infra/foundryVNETInjection.bicep \
   --parameters \
     prefix=myapp \
     location=norwayeast \
@@ -245,8 +245,8 @@ Run a **what-if** to preview changes without actually deploying:
 ```bash
 az deployment group what-if \
   --resource-group <resource-group> \
-  --template-file infra/main.bicep \
-  --parameters infra/main.bicepparam
+  --template-file infra/foundryVNETInjection.bicep \
+  --parameters infra/foundryVNETInjection.bicepparam
 ```
 
 ### 6) Deploy a model
@@ -255,7 +255,7 @@ Once the infrastructure is provisioned, deploy models through the Azure AI Found
 
 ```bash
 az cognitiveservices account deployment create \
-  --name <prefix>-foundry-core \
+  --name <prefix>-aif \
   --resource-group <resource-group> \
   --deployment-name gpt-4o \
   --model-name gpt-4o \
