@@ -1,4 +1,4 @@
-using 'main.bicep'
+using 'foundryVNETInjection.bicep'
 
 param prefix = 'demo-agentic'
 param location = 'norwayeast'
