@@ -177,23 +177,20 @@ https://<app-name>.azurewebsites.net/mcp
 
 ## 🏗️ Deploy Infrastructure with Bicep
 
-The `infra/` folder contains **Bicep templates** to provision the Azure AI Foundry infrastructure shell (Hub, Project, AI Services, and supporting resources) with network injection. Model deployments are managed separately through the Azure portal or CLI once the infrastructure is in place.
+The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a project, using network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
 
 ### Prerequisites
 
 - An Azure subscription
 - [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed (v2.61+)
-- An existing **Virtual Network** and **Subnet**
+- An existing **Subnet** for network injection
 
 ### Resources deployed
 
 | Resource | Description |
 |---|---|
-| **Storage Account** | Required by the AI Foundry Hub, network-restricted to your subnet |
-| **Key Vault** | Required by the AI Foundry Hub, network-restricted to your subnet |
-| **AI Services** | Cognitive Services account (kind `AIServices`) providing the AI endpoint |
-| **AI Foundry Hub** | Azure AI Foundry Hub with managed network and VNet injection |
-| **AI Foundry Project** | Project linked to the Hub |
+| **AI Foundry** | Cognitive Services account (kind `AIServices`) with network injection on the provided subnet |
+| **AI Foundry Project** | Project (child resource) linked to the AI Foundry instance |
 
 ### 1) Edit the parameters file
 
@@ -204,7 +201,6 @@ using 'main.bicep'
 
 param prefix = 'myapp'                    // Prefix for all resource names
 param location = 'swedencentral'
-param vnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>'
 param subnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
 
 param tags = {
@@ -238,8 +234,7 @@ az deployment group create \
   --template-file infra/main.bicep \
   --parameters \
     prefix=myapp \
-    location=swedencentral \
-    vnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>' \
+    location=norwayeast \
     subnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
 ```
 
@@ -254,22 +249,13 @@ az deployment group what-if \
   --parameters infra/main.bicepparam
 ```
 
-### 6) Check deployment outputs
+### 6) Deploy a model
 
-After a successful deployment, retrieve the outputs:
-
-```bash
-az deployment group show \
-  --resource-group <resource-group> \
-  --name main \
-  --query properties.outputs
-```
-
-This returns the Hub ID, Project ID, and AI Services endpoint. You can then deploy models through the Azure AI Foundry portal or via the CLI:
+Once the infrastructure is provisioned, deploy models through the Azure AI Foundry portal or via the CLI:
 
 ```bash
 az cognitiveservices account deployment create \
-  --name <ai-services-name> \
+  --name <prefix>-foundry-core \
   --resource-group <resource-group> \
   --deployment-name gpt-4o \
   --model-name gpt-4o \

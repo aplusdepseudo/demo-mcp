@@ -2,7 +2,6 @@ using 'main.bicep'
 
 param prefix = 'demo-agentic'
 param location = 'norwayeast'
-param vnetId = '/subscriptions/0c597dc4-1753-4e29-9a7f-4ad8ab887aab/resourceGroups/demo-agentic-rg/providers/Microsoft.Network/virtualNetworks/demo-agentic-vnet'
 param subnetId = '/subscriptions/0c597dc4-1753-4e29-9a7f-4ad8ab887aab/resourceGroups/demo-agentic-rg/providers/Microsoft.Network/virtualNetworks/demo-agentic-vnet/subnets/subnet-agent'
 
 param tags = {
