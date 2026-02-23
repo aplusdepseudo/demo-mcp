@@ -177,7 +177,7 @@ https://<app-name>.azurewebsites.net/mcp
 
 ## 🏗️ Deploy Infrastructure with Bicep
 
-The `infra/` folder contains **Bicep templates** to provision the Azure AI Foundry infrastructure (Hub, Project, AI Services, and LLM model deployment) with network injection.
+The `infra/` folder contains **Bicep templates** to provision the Azure AI Foundry infrastructure shell (Hub, Project, AI Services, and supporting resources) with network injection. Model deployments are managed separately through the Azure portal or CLI once the infrastructure is in place.
 
 ### Prerequisites
 
@@ -191,10 +191,9 @@ The `infra/` folder contains **Bicep templates** to provision the Azure AI Found
 |---|---|
 | **Storage Account** | Required by the AI Foundry Hub, network-restricted to your subnet |
 | **Key Vault** | Required by the AI Foundry Hub, network-restricted to your subnet |
-| **AI Services** | Cognitive Services account (kind `AIServices`) hosting the LLM model |
+| **AI Services** | Cognitive Services account (kind `AIServices`) providing the AI endpoint |
 | **AI Foundry Hub** | Azure AI Foundry Hub with managed network and VNet injection |
 | **AI Foundry Project** | Project linked to the Hub |
-| **LLM Model Deployment** | Deployment of the chosen model (default: `gpt-4o`) on AI Services |
 
 ### 1) Edit the parameters file
 
@@ -208,10 +207,10 @@ param location = 'swedencentral'
 param vnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>'
 param subnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
 
-param modelName = 'gpt-4o'
-param modelVersion = '2024-08-06'
-param modelDeploymentSkuName = 'GlobalStandard'
-param modelDeploymentCapacity = 10
+param tags = {
+  environment: 'dev'
+  project: 'mcp-demo'
+}
 ```
 
 ### 2) Create a resource group (if needed)
@@ -241,9 +240,7 @@ az deployment group create \
     prefix=myapp \
     location=swedencentral \
     vnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>' \
-    subnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>' \
-    modelName=gpt-4o \
-    modelVersion=2024-08-06
+    subnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
 ```
 
 ### 5) Validate before deploying (dry-run)
@@ -268,4 +265,16 @@ az deployment group show \
   --query properties.outputs
 ```
 
-This returns the Hub ID, Project ID, AI Services endpoint, and model deployment name.
+This returns the Hub ID, Project ID, and AI Services endpoint. You can then deploy models through the Azure AI Foundry portal or via the CLI:
+
+```bash
+az cognitiveservices account deployment create \
+  --name <ai-services-name> \
+  --resource-group <resource-group> \
+  --deployment-name gpt-4o \
+  --model-name gpt-4o \
+  --model-version 2024-08-06 \
+  --model-format OpenAI \
+  --sku-capacity 10 \
+  --sku-name GlobalStandard
+```
