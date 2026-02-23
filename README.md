@@ -174,3 +174,98 @@ https://<app-name>.azurewebsites.net/mcp
 | `PORT` | Set automatically by Azure; the server binds to it |
 | `WEBSITE_HOSTNAME` | Set automatically by Azure; used for Host header validation |
 | `SCM_DO_BUILD_DURING_DEPLOYMENT` | Set to `true` if you want Oryx to build on deploy |
+
+## 🏗️ Deploy Infrastructure with Bicep
+
+The `infra/` folder contains **Bicep templates** to provision the Azure AI Foundry infrastructure (Hub, Project, AI Services, and LLM model deployment) with network injection.
+
+### Prerequisites
+
+- An Azure subscription
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed (v2.61+)
+- An existing **Virtual Network** and **Subnet**
+
+### Resources deployed
+
+| Resource | Description |
+|---|---|
+| **Storage Account** | Required by the AI Foundry Hub, network-restricted to your subnet |
+| **Key Vault** | Required by the AI Foundry Hub, network-restricted to your subnet |
+| **AI Services** | Cognitive Services account (kind `AIServices`) hosting the LLM model |
+| **AI Foundry Hub** | Azure AI Foundry Hub with managed network and VNet injection |
+| **AI Foundry Project** | Project linked to the Hub |
+| **LLM Model Deployment** | Deployment of the chosen model (default: `gpt-4o`) on AI Services |
+
+### 1) Edit the parameters file
+
+Open `infra/main.bicepparam` and replace the placeholder values with your own:
+
+```bicep
+using 'main.bicep'
+
+param prefix = 'myapp'                    // Prefix for all resource names
+param location = 'swedencentral'
+param vnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>'
+param subnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
+
+param modelName = 'gpt-4o'
+param modelVersion = '2024-08-06'
+param modelDeploymentSkuName = 'GlobalStandard'
+param modelDeploymentCapacity = 10
+```
+
+### 2) Create a resource group (if needed)
+
+```bash
+az group create --name <resource-group> --location <region>
+```
+
+### 3) Deploy with the parameters file
+
+```bash
+az deployment group create \
+  --resource-group <resource-group> \
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam
+```
+
+### 4) Or deploy with inline parameters
+
+You can also pass parameters directly on the command line:
+
+```bash
+az deployment group create \
+  --resource-group <resource-group> \
+  --template-file infra/main.bicep \
+  --parameters \
+    prefix=myapp \
+    location=swedencentral \
+    vnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>' \
+    subnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>' \
+    modelName=gpt-4o \
+    modelVersion=2024-08-06
+```
+
+### 5) Validate before deploying (dry-run)
+
+Run a **what-if** to preview changes without actually deploying:
+
+```bash
+az deployment group what-if \
+  --resource-group <resource-group> \
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam
+```
+
+### 6) Check deployment outputs
+
+After a successful deployment, retrieve the outputs:
+
+```bash
+az deployment group show \
+  --resource-group <resource-group> \
+  --name main \
+  --query properties.outputs
+```
+
+This returns the Hub ID, Project ID, AI Services endpoint, and model deployment name.
