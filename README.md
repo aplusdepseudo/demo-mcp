@@ -250,7 +250,7 @@ The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundr
 
 Use this button to deploy the `infra/main.bicep` template directly from GitHub.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2F<github-user>%2F<github-repo>%2F<branch>%2Finfra%2Fmain.bicep)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Faplusdepseudo%2Fdemo-mcp%2Fmain%2Finfra%2Fmain.bicep)
 
 Replace `<github-user>`, `<github-repo>`, and `<branch>` with your repository values.
 
@@ -347,18 +347,6 @@ az deployment group what-if \
   --parameters infra/main.bicepparam
 ```
 
-### 6) Deploy a model
+### 6) Deploy an agent
 
-Once the infrastructure is provisioned, deploy models through the Azure AI Foundry portal or via the CLI:
-
-```bash
-az cognitiveservices account deployment create \
-  --name <prefix>-aif \
-  --resource-group <resource-group> \
-  --deployment-name gpt-4o \
-  --model-name gpt-4o \
-  --model-version 2024-08-06 \
-  --model-format OpenAI \
-  --sku-capacity 10 \
-  --sku-name GlobalStandard
-```
+Once the infrastructure is provisioned, create an agent from the Microsoft Foundry portal and connect it to the MCP tool. You can they query your tool fully using private network connectivity between your agent and the MPC server.
