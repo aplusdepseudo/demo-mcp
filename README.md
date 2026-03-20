@@ -180,13 +180,36 @@ If you use a custom domain, add it via the `WEBSITE_HOSTNAME` override or adjust
 
 ### 3) Build and deploy
 
+Before deploying with Azure CLI, make sure your current public IP is allowed in the Web App access restrictions:
+
+- Azure Portal -> Web App -> Networking -> Access restrictions
+- Add an allow rule for your public IP on both the main site and the SCM/Kudu site
+
 **Option A — Deploy with Azure CLI (ZIP deploy):**
 
 ```bash
 npm install
 npm run build
-az webapp deploy --name <app-name> --resource-group <resource-group> --src-path . --type zip
+mkdir -p package
+tar -cavf ./package/build.zip -C ./build/ *
+az webapp deploy --name <app-name> --resource-group <resource-group> --src-path ./package/build.zip --type zip
 ```
+
+**Option B — Use the existing npm scripts from `package.json`:**
+
+```bash
+# Optional: update values in package.json > config
+# - resourceGroup
+# - resourceWebApp
+
+npm run deploy-app
+```
+
+`deploy-app` runs `predeploy-app` automatically, which executes:
+
+- `npm run build`
+- `npm run package-app`
+- then `az webapp deploy ... --src-path ./package/build.zip --type zip`
 
 **Option B — Deploy via GitHub Actions:**
 
@@ -224,8 +247,6 @@ https://<app-name>.azurewebsites.net/mcp
 ## 🏗️ Deploy Infrastructure with Bicep
 
 The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a default project and network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
-
-### Deploy To Azure Button
 
 Use this button to deploy the `infra/main.bicep` template directly from GitHub.
 
@@ -285,6 +306,18 @@ az deployment group create \
   --template-file infra/main.bicep \
   --parameters infra/main.bicepparam
 ```
+
+### 3b) Or use the existing npm script from `package.json`
+
+```bash
+# Optional: update value in package.json > config.resourceGroup
+npm run deploy-infra
+```
+
+`deploy-infra` executes the same Azure CLI deployment command against:
+
+- `infra/main.bicep`
+- `infra/main.bicepparam`
 
 ### 4) Or deploy with inline parameters
 
