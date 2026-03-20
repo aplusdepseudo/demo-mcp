@@ -248,9 +248,9 @@ https://<app-name>.azurewebsites.net/mcp
 
 The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a default project and network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
 
-Use this button to deploy the `infra/main.bicep` template directly from GitHub.
+Use this button to deploy the template directly from GitHub.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Faplusdepseudo%2Fdemo-mcp%2Fmain%2Finfra%2Fmain.bicep)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Faplusdepseudo%2Fdemo-mcp%2Fmain%2Finfra%2Fmain.json)
 
 ### Prerequisites
 
