@@ -252,8 +252,6 @@ Use this button to deploy the `infra/main.bicep` template directly from GitHub.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Faplusdepseudo%2Fdemo-mcp%2Fmain%2Finfra%2Fmain.bicep)
 
-Replace `<github-user>`, `<github-repo>`, and `<branch>` with your repository values.
-
 ### Prerequisites
 
 - An Azure subscription
