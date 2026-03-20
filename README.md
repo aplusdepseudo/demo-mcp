@@ -9,7 +9,7 @@ This project is designed to be easy to read, run, and extend for learning/demo p
 - 🧩 A minimal MCP server using `@modelcontextprotocol/sdk`
 - 🌐 Streamable HTTP MCP endpoint at `/mcp`
 - ✅ Health check endpoint at `/`
-- 🛠️ A sample MCP tool: `list_suppliers`
+- 🛠️ A complete mock procurement toolset (suppliers, POs, invoices, contracts, RFPs, risk)
 
 ## 🧱 Tech Stack
 
@@ -74,17 +74,63 @@ npx -y @modelcontextprotocol/inspector
 
 ### 4) Test a tool
 
-- Open the tools list and select `list_suppliers`
-- (Optional) provide inputs like `status` or `category`
+- Open the tools list and select a tool like `list_suppliers` or `get_dashboard_summary`
+- (Optional) provide tool inputs (for example `status`, `category`, `supplier_id`)
 - Run the tool and inspect the JSON result
 
 💡 If you run on a different port, update the URL accordingly (for example `http://localhost:4000/mcp`).
 
-## 🧪 Example tool included
+## 🧪 Available MCP Tools
 
-- `list_suppliers`
-  - Returns demo supplier data
-  - Accepts optional inputs such as `status` and `category`
+- `get_dashboard_summary`
+- `list_suppliers`, `get_supplier`
+- `list_purchase_orders`, `get_purchase_order`
+- `list_requisitions`, `get_requisition`
+- `list_invoices`, `get_invoice`
+- `list_contracts`, `get_contract`
+- `list_proposals`, `get_proposal`
+- `list_rfps`, `get_rfp`
+- `get_risk_score`
+
+## 🔎 API And MCP Server
+
+The project has two layers:
+
+1. A **domain API layer** in `src/api.ts` that returns mock business data and applies filtering logic.
+2. An **MCP layer** in `src/mcp.ts` that exposes this domain logic as MCP tools with validated input schemas (`zod`).
+
+### Domain API (`src/api.ts`)
+
+The domain API provides grouped functions for procurement entities:
+
+- Dashboard summary
+- Suppliers
+- Purchase orders
+- Requisitions
+- Invoices
+- Contracts
+- Proposals
+- RFPs
+- Risk scoring
+
+Each `get*` function returns either:
+
+- A typed object/list, or
+- A standardized not-found payload (`{ error: "... not found" }`) for lookup-by-id methods.
+
+### MCP Server (`src/mcp.ts` + `src/server.ts`)
+
+`src/mcp.ts` registers tools in the naming format `action_category` (`get_*`, `list_*`) and maps each tool to a domain API function.
+
+`src/server.ts` exposes:
+
+- `GET /` for status
+- `/mcp` for Streamable HTTP MCP requests
+
+Notes about transport behavior:
+
+- `POST /mcp` is used for MCP requests
+- `GET /mcp` and `DELETE /mcp` return `405` in this stateless setup
 
 ## 📂 Project Structure
 
@@ -189,8 +235,13 @@ The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundr
 
 | Resource | Description |
 |---|---|
-| **AI Foundry** | Cognitive Services account (kind `AIServices`) with system-assigned identity, project management enabled, and network injection on the provided subnet |
-| **AI Foundry Project** | Default project (child resource) automatically created with the Foundry instance |
+| **AI Foundry** | Cognitive Services account (kind `AIServices`) with system-assigned identity and network injection |
+| **AI Foundry Project** | Default project (child resource) created with the Foundry instance |
+| **Storage Account** | Blob storage used by project connections/capability host |
+| **AI Search** | Search service used for vector store connections |
+| **Cosmos DB** | Thread storage backend via project connection |
+| **Private Endpoints + Private DNS** | Private connectivity and DNS zones for Foundry, Storage, Search, and Cosmos DB |
+| **Project Connections + Capability Host** | Foundry project connections and `Agents` capability host wiring |
 
 ### 1) Edit the parameters file
 
@@ -201,7 +252,9 @@ using 'foundryVNETInjection.bicep'
 
 param prefix = 'myapp'                    // Prefix for all resource names
 param location = 'norwayeast'
-param subnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
+param subnetAgent = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>'
+param vnetPEName = '<existing-vnet-name>'
+param subnetPEName = '<existing-private-endpoint-subnet-name>'
 
 param tags = {
   environment: 'dev'
@@ -235,7 +288,9 @@ az deployment group create \
   --parameters \
     prefix=myapp \
     location=norwayeast \
-    subnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet>'
+    subnetAgent='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>' \
+    vnetPEName='<existing-vnet-name>' \
+    subnetPEName='<existing-private-endpoint-subnet-name>'
 ```
 
 ### 5) Validate before deploying (dry-run)
