@@ -225,6 +225,14 @@ https://<app-name>.azurewebsites.net/mcp
 
 The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a default project and network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
 
+### Deploy To Azure Button
+
+Use this button to deploy the `infra/main.bicep` template directly from GitHub.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2F<github-user>%2F<github-repo>%2F<branch>%2Finfra%2Fmain.bicep)
+
+Replace `<github-user>`, `<github-repo>`, and `<branch>` with your repository values.
+
 ### Prerequisites
 
 - An Azure subscription
@@ -245,16 +253,17 @@ The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundr
 
 ### 1) Edit the parameters file
 
-Open `infra/foundryVNETInjection.bicepparam` and replace the placeholder values with your own:
+Open `infra/main.bicepparam` and replace the placeholder values with your own:
 
 ```bicep
-using 'foundryVNETInjection.bicep'
+using 'main.bicep'
 
 param prefix = 'myapp'                    // Prefix for all resource names
 param location = 'norwayeast'
-param subnetAgent = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>'
-param vnetPEName = '<existing-vnet-name>'
-param subnetPEName = '<existing-private-endpoint-subnet-name>'
+param agentSubnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>'
+param peVNETName = '<existing-vnet-name>'
+param peSubnetName = '<existing-private-endpoint-subnet-name>'
+param webAppName = 'myapp-wa'
 
 param tags = {
   environment: 'dev'
@@ -273,8 +282,8 @@ az group create --name <resource-group> --location <region>
 ```bash
 az deployment group create \
   --resource-group <resource-group> \
-  --template-file infra/foundryVNETInjection.bicep \
-  --parameters infra/foundryVNETInjection.bicepparam
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam
 ```
 
 ### 4) Or deploy with inline parameters
@@ -284,13 +293,14 @@ You can also pass parameters directly on the command line:
 ```bash
 az deployment group create \
   --resource-group <resource-group> \
-  --template-file infra/foundryVNETInjection.bicep \
+  --template-file infra/main.bicep \
   --parameters \
     prefix=myapp \
     location=norwayeast \
-    subnetAgent='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>' \
-    vnetPEName='<existing-vnet-name>' \
-    subnetPEName='<existing-private-endpoint-subnet-name>'
+    agentSubnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>' \
+    peVNETName='<existing-vnet-name>' \
+    peSubnetName='<existing-private-endpoint-subnet-name>' \
+    webAppName='myapp-wa'
 ```
 
 ### 5) Validate before deploying (dry-run)
@@ -300,8 +310,8 @@ Run a **what-if** to preview changes without actually deploying:
 ```bash
 az deployment group what-if \
   --resource-group <resource-group> \
-  --template-file infra/foundryVNETInjection.bicep \
-  --parameters infra/foundryVNETInjection.bicepparam
+  --template-file infra/main.bicep \
+  --parameters infra/main.bicepparam
 ```
 
 ### 6) Deploy a model
