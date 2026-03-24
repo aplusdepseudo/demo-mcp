@@ -4,6 +4,12 @@ A lightweight **Node.js + TypeScript** demo server that showcases a simple imple
 
 This project is designed to be easy to read, run, and extend for learning/demo purposes. ✨
 
+## 🙏 Acknowledgment
+
+Thanks to Lucas for the original repository that is the base we used for another demo:
+
+- https://github.com/lzetea/ariba-mock
+
 ## 🎯 What this project demonstrates
 
 - 🧩 A minimal MCP server using `@modelcontextprotocol/sdk`
@@ -147,12 +153,6 @@ build/
 ## 💡 Notes
 
 This is a **demo/mock implementation** intended for experimentation and learning. Feel free to adapt it as a starting point for your own MCP integrations. 🙌
-
-## 🙏 Acknowledgment
-
-Thanks to Lucas for the original repository that was the base we used for another demo:
-
-- https://github.com/lzetea/ariba-mock
 
 ## ☁️ Deploy to Azure Web App
 
