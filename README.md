@@ -148,6 +148,12 @@ build/
 
 This is a **demo/mock implementation** intended for experimentation and learning. Feel free to adapt it as a starting point for your own MCP integrations. 🙌
 
+## 🙏 Acknowledgment
+
+Thanks to Lucas for the original repository that was the base we used for another demo:
+
+- https://github.com/lzetea/ariba-mock
+
 ## ☁️ Deploy to Azure Web App
 
 This project can be deployed to an **Azure Web App (Node.js)** with minimal configuration.
