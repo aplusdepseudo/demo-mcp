@@ -1,0 +1,18 @@
+{
+  "name": "rfp-documentation-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Azure AI Foundry agent that generates RFP documentation and vendor shortlists",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@azure/ai-projects": "^2.0.2",
+    "@azure/identity": "^4.13.1",
+    "dotenv": "^16.5.0",
+    "exceljs": "^4.4.0"
+  }
+}
