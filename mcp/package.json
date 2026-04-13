@@ -5,19 +5,10 @@
   "bin": {
     "mcp-mock": "./build/index.js"
   },
-  "config": {
-    "resourceGroup": "demo-agentic-rg",
-    "resourceWebApp": "demo-agentic-wa"
-  },
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "npx tsx watch src/index.ts",
     "build": "tsc",
-    "rebuild-arm": "az bicep build --file ../infra/main.bicep --outfile ../infra/main.json",
-    "deploy-infra": "az deployment group create --resource-group %npm_package_config_resourceGroup% --template-file ../infra/main.bicep --parameters ../infra/main.bicepparam",
-    "package-app": "tar -cavf ./package/build.zip -C ./build/ *",
-    "predeploy-app": "npm run build && npm run package-app",
-    "deploy-app": "az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path ./package/build.zip --type zip",
     "inspect": "npx -y @modelcontextprotocol/inspector"
   },
   "keywords": [],

@@ -39,4 +39,4 @@ The codebase has two layers:
 
 ## Infrastructure
 
-The `infra/` folder contains Azure Bicep templates to provision an Azure AI Foundry instance with networking. The web app is deployed via ZIP deploy (`cd mcp && npm run deploy-app`). Resource names are configured in `mcp/package.json > config`.
+The `infra/` folder contains Azure Bicep templates and its own `infra/package.json` with deployment scripts. Resource names (`resourceGroup`, `resourceWebApp`) are configured in `infra/package.json > config`. Deploy with `cd infra && npm run deploy-infra` (Bicep) or `npm run deploy-app` (web app ZIP deploy).

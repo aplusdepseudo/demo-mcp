@@ -1,0 +1,19 @@
+{
+  "name": "mcp-mock-infra",
+  "version": "1.0.0",
+  "private": true,
+  "config": {
+    "resourceGroup": "demo-agentic-rg",
+    "resourceWebApp": "demo-agentic-wa"
+  },
+  "scripts": {
+    "rebuild-arm": "az bicep build --file main.bicep --outfile main.json",
+    "deploy-infra": "az deployment group create --resource-group %npm_package_config_resourceGroup% --template-file main.bicep --parameters main.bicepparam",
+    "package-app": "tar -cavf ../mcp/package/build.zip -C ../mcp/build/ *",
+    "predeploy-app": "npm run --prefix ../mcp build && npm run package-app",
+    "deploy-app": "az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path ../mcp/package/build.zip --type zip"
+  },
+  "author": "Nicolas ANTOINE",
+  "license": "ISC",
+  "description": "Azure infrastructure deployment scripts for the MCP Mock project"
+}

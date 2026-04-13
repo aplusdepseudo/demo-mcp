@@ -204,10 +204,10 @@ tar -cavf ./package/build.zip -C ./build/ *
 az webapp deploy --name <app-name> --resource-group <resource-group> --src-path ./package/build.zip --type zip
 ```
 
-**Option B — Use the existing npm scripts from `mcp/package.json`:**
+**Option B — Use the existing npm scripts from `infra/package.json`:**
 
 ```bash
-cd mcp
+cd infra
 # Optional: update values in package.json > config
 # - resourceGroup
 # - resourceWebApp
@@ -217,9 +217,9 @@ npm run deploy-app
 
 `deploy-app` runs `predeploy-app` automatically, which executes:
 
-- `npm run build`
-- `npm run package-app`
-- then `az webapp deploy ... --src-path ./package/build.zip --type zip`
+- `npm run --prefix ../mcp build` (builds the MCP server)
+- `npm run package-app` (creates the ZIP archive)
+- then `az webapp deploy ... --src-path ../mcp/package/build.zip --type zip`
 
 **Option B — Deploy via GitHub Actions:**
 
@@ -315,18 +315,18 @@ az deployment group create \
   --parameters infra/main.bicepparam
 ```
 
-### 3b) Or use the existing npm script from `mcp/package.json`
+### 3b) Or use the existing npm script from `infra/package.json`
 
 ```bash
-cd mcp
+cd infra
 # Optional: update value in package.json > config.resourceGroup
 npm run deploy-infra
 ```
 
 `deploy-infra` executes the same Azure CLI deployment command against:
 
-- `infra/main.bicep`
-- `infra/main.bicepparam`
+- `main.bicep`
+- `main.bicepparam`
 
 ### 4) Or deploy with inline parameters
 
