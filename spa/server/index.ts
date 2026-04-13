@@ -20,6 +20,30 @@ app.use((_req, res, next) => {
   next();
 });
 
+// ── Security helpers ──────────────────────────────────────────────────────
+
+/** Strip HTML meta-characters from a string to prevent reflected XSS. */
+function stripHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return entities[c] ?? c;
+  });
+}
+
+/** Return a copy of an SSE event with all string fields HTML-escaped. */
+function sanitizeSseEvent(event: SseEvent): SseEvent {
+  if (event.type === 'status') return { ...event, message: stripHtml(event.message) };
+  if (event.type === 'tool_call') return { ...event, toolName: stripHtml(event.toolName) };
+  if (event.type === 'error') return { ...event, message: stripHtml(event.message) };
+  return event;
+}
+
 // ── Health check ──────────────────────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'up', service: 'rfp-spa-server' });
@@ -50,7 +74,11 @@ app.post('/api/generate', async (req, res) => {
   res.flushHeaders();
 
   function send(event: SseEvent) {
-    res.write(`data: ${JSON.stringify(event)}\n\n`);
+    // Sanitize string fields to strip HTML characters before writing to the
+    // SSE stream, preventing reflected XSS if the message contains
+    // user-supplied content from error paths.
+    const sanitized = sanitizeSseEvent(event);
+    res.write(`data: ${JSON.stringify(sanitized)}\n\n`);
   }
 
   try {
@@ -68,8 +96,11 @@ app.post('/api/generate', async (req, res) => {
 
     send({ type: 'result', output });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    send({ type: 'error', message });
+    // Log the full error server-side and send only a sanitized message to the
+    // client to prevent exception text from being reinterpreted as HTML.
+    console.error('RFP generation error:', err);
+    const raw = err instanceof Error ? err.message : String(err);
+    send({ type: 'error', message: stripHtml(raw) });
   } finally {
     res.write('data: [DONE]\n\n');
     res.end();
