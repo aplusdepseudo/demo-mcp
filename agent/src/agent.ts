@@ -234,14 +234,14 @@ async function createAgentVersion(
   config: AgentConfig,
   vectorStoreId: string,
 ): Promise<{ name: string; version: string }> {
-  console.log('Step 2/2 – Creating RFP documentation agent...');
+  console.log('Step 2/2 – Creating RFP agent...');
 
   const fileSearchTool: FileSearchTool = {
     type: 'file_search',
     vector_store_ids: [vectorStoreId],
   };
 
-  const agent = await project.agents.createVersion('rfp-documentation-agent', {
+  const agent = await project.agents.createVersion('rfp-agent', {
     kind: 'prompt',
     model: config.modelDeployment,
     instructions: AGENT_INSTRUCTIONS,

@@ -1,5 +1,5 @@
 {
-  "name": "rfp-documentation-agent",
+  "name": "rfp-agent",
   "version": "1.0.0",
   "type": "module",
   "description": "Azure AI Foundry agent that generates RFP documentation and vendor shortlists",

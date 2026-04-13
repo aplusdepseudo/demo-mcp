@@ -1,4 +1,4 @@
-# 🤖 RFP Documentation Agent
+# 🤖 RFP Agent
 
 An **Azure AI Foundry** agent that provisions and configures the infrastructure for automated RFP (Request for Proposal) documentation generation. The agent is provisioned from this code; the conversation itself is handled by a separate single-page application (SPA).
 
@@ -27,7 +27,7 @@ agent/
 ├── src/
 │   ├── index.ts          CLI entry point — provisions the agent and prints
 │   │                     agentName + agentVersion + vectorStoreId as JSON
-│   └── rfpAgent.ts       All exported types, tool definitions, prompt builder,
+│   └── agent.ts          All exported types, tool definitions, prompt builder,
 │                         provision/deprovision, parseRfpOutput, generateReport
 ├── assets/
 │   └── rfp-prerequisites.txt   Enterprise RFP prerequisite knowledge document
@@ -114,7 +114,7 @@ The output is a JSON object the SPA needs to start a conversation:
 
 ```json
 {
-  "agentName": "rfp-documentation-agent",
+  "agentName": "rfp-agent",
   "agentVersion": "1",
   "vectorStoreId": "vs_abc123"
 }

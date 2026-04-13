@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { type AgentConfig, provisionRFPAgent } from './rfpAgent.js';
+import { type AgentConfig, provisionRFPAgent } from './agent.js';
 
 // -------------------------------------------------------------------------
 // Configuration — read from environment variables (see .env.example)
@@ -23,7 +23,7 @@ if (!config.projectEndpoint) {
 // agent, and vectorStoreId to reference the knowledge base.
 // -------------------------------------------------------------------------
 
-console.log(`Provisioning RFP documentation agent (model: ${config.modelDeployment})...`);
+console.log(`Provisioning RFP agent (model: ${config.modelDeployment})...`);
 
 const result = await provisionRFPAgent(config);
 
