@@ -37,6 +37,10 @@ The codebase has two layers:
 - **No session state**: The server is fully stateless — a new MCP server + transport is created per request and torn down on response close.
 - **Environment variables**: `PORT` (server port, default 3000), `WEBSITE_HOSTNAME` (allowed Host headers for DNS rebinding protection, comma-separated).
 
+## Git Workflow
+
+Before committing, always ask the user for a commit message (title) and description. Do not generate commit messages autonomously.
+
 ## Infrastructure
 
 The `infra/` folder contains Azure Bicep templates and its own `infra/package.json` with deployment scripts. Resource names (`resourceGroup`, `resourceWebApp`) are configured in `infra/package.json > config`. Deploy with `cd infra && npm run deploy-infra` (Bicep) or `npm run deploy-app` (web app ZIP deploy).
