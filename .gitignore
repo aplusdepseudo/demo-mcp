@@ -18,3 +18,7 @@ package/
 
 # Misc
 *.tgz
+
+# Agent generated output
+output/
+agent-output.txt

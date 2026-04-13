@@ -4,14 +4,18 @@
   "private": true,
   "config": {
     "resourceGroup": "demo-agentic-rg",
-    "resourceWebApp": "demo-agentic-wa"
+    "resourceWebApp": "demo-agentic-wa",
+    "foundryProjectEndpoint": "https://demo-agentic-aif.services.ai.azure.com/api/projects/demo-agentic-aif-proj",
+    "foundryModelName": "gpt-5.1"
   },
   "scripts": {
     "rebuild-arm": "az bicep build --file main.bicep --outfile main.json",
     "deploy-infra": "az deployment group create --resource-group %npm_package_config_resourceGroup% --template-file main.bicep --parameters main.bicepparam",
     "package-app": "tar -cavf ../mcp/package/build.zip -C ../mcp/build/ *",
     "predeploy-app": "npm run --prefix ../mcp build && npm run package-app",
-    "deploy-app": "az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path ../mcp/package/build.zip --type zip"
+    "deploy-app": "az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path ../mcp/package/build.zip --type zip",
+    "predeploy-agent": "npm run --prefix ../agent build",
+    "deploy-agent": "npm run --prefix ../agent provision"
   },
   "author": "Nicolas ANTOINE",
   "license": "ISC",

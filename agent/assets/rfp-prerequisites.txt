@@ -1,0 +1,146 @@
+ENTERPRISE RFP PREREQUISITES AND COMPLIANCE REQUIREMENTS
+=========================================================
+Version: 2.0 | Classification: Internal Use Only
+Last Updated: 2026
+
+This document defines the mandatory prerequisites, evaluation criteria, and compliance
+requirements that must be addressed in all enterprise procurement RFPs. Procurement teams
+must verify that every RFP covers all applicable sections before issuing to vendors.
+
+------------------------------------------------------------------------
+1. VENDOR QUALIFICATION CRITERIA
+------------------------------------------------------------------------
+1.1  The vendor must have been operating as a registered business entity for a minimum of
+     5 years at the time of proposal submission.
+1.2  Annual revenue must exceed $10 million USD (or equivalent) for each of the last 3
+     fiscal years. Audited financial statements are required.
+1.3  The vendor must not appear on any government debarment, exclusion, or suspension list
+     (EU, US SAM.gov, or applicable national registry).
+1.4  A minimum of 3 verifiable reference customers with comparable scope (industry, size,
+     solution complexity) must be provided.
+1.5  Key project personnel (project manager, solution architect, lead developer) must have
+     a minimum of 5 years of relevant experience and must be named in the proposal.
+1.6  Subcontractors contributing more than 20% of work must meet the same qualification
+     criteria and be explicitly listed in the proposal.
+
+------------------------------------------------------------------------
+2. SECURITY AND COMPLIANCE REQUIREMENTS
+------------------------------------------------------------------------
+2.1  The vendor must hold an active ISO 27001:2022 certification covering the services
+     delivered under this RFP.
+2.2  A SOC 2 Type II report (less than 12 months old) must be provided or made available
+     under NDA.
+2.3  Full GDPR (or applicable regional privacy regulation) compliance must be demonstrated,
+     including data processing agreements.
+2.4  Data residency: all data must remain within the agreed geographic region (EU or North
+     America) unless explicitly approved in writing.
+2.5  The vendor must provide a documented vulnerability management and patch policy with
+     SLAs for critical, high, and medium severity vulnerabilities.
+2.6  Penetration testing must be conducted at least annually; results summary must be
+     available upon request.
+2.7  Multi-factor authentication (MFA) must be enforced for all administrative access to
+     systems in scope.
+
+------------------------------------------------------------------------
+3. FINANCIAL AND CONTRACTUAL REQUIREMENTS
+------------------------------------------------------------------------
+3.1  Pricing model: fixed-price or capped time-and-materials (T&M). Open-ended T&M is
+     not acceptable for the base scope.
+3.2  Payment terms: Net 30 days from invoice receipt and acceptance.
+3.3  Warranty period: minimum 12 months post go-live covering defect remediation at no
+     additional cost.
+3.4  Service Level Agreement (SLA): production system availability must be 99.5% or higher
+     per calendar month, excluding pre-approved maintenance windows.
+3.5  Incident response SLAs: Critical (P1) – 1 hour response, 4 hours resolution target;
+     High (P2) – 4 hours response, 24 hours resolution target.
+3.6  Liability cap: the vendor's maximum aggregate liability must be at least equal to the
+     total contract value.
+3.7  Intellectual property: the client retains ownership of all custom code, configurations,
+     and documentation developed specifically for this engagement.
+3.8  Right to audit: the client reserves the right to audit vendor systems and processes
+     related to this engagement with 10 business days' notice.
+3.9  Change management: a formal change control process must be proposed, including impact
+     assessment templates and approval workflows.
+3.10 Exit/transition plan: a documented transition and data export plan must be included,
+     covering all migration artifacts, credentials, and documentation hand-off.
+
+------------------------------------------------------------------------
+4. TECHNICAL REQUIREMENTS
+------------------------------------------------------------------------
+4.1  The proposed solution must be cloud-native or validated as cloud-ready, deployable
+     on Microsoft Azure or AWS (specify in proposal).
+4.2  APIs must be RESTful, versioned, fully documented (OpenAPI 3.0 spec required), and
+     include sandbox/test environment access.
+4.3  The solution must support integration with the enterprise Microsoft 365 and Azure AD
+     stack (SSO via SAML 2.0 / OIDC is mandatory).
+4.4  End-user interfaces must be mobile-responsive (WCAG 2.1 AA accessibility standard).
+4.5  Multi-language support (minimum English and French) and multi-currency (minimum USD,
+     EUR, GBP, CAD) are required.
+4.6  Disaster Recovery (DR): RTO ≤ 4 hours, RPO ≤ 1 hour for production data.
+4.7  The solution must support role-based access control (RBAC) with a minimum of 5
+     configurable roles.
+4.8  Data encryption at rest (AES-256) and in transit (TLS 1.2+) is mandatory.
+4.9  Audit logging must capture all user actions with timestamps, user IDs, and be
+     tamper-proof and retained for a minimum of 3 years.
+4.10 The vendor must provide a documented software development lifecycle (SDLC) and
+     release management process, including hotfix procedures.
+
+------------------------------------------------------------------------
+5. DELIVERY AND PROJECT MANAGEMENT
+------------------------------------------------------------------------
+5.1  Agile delivery methodology (Scrum or SAFe) is required; sprint cadence must be
+     2 weeks.
+5.2  A dedicated, named project manager (PMP or equivalent certified) must be assigned
+     for the duration of the project.
+5.3  Weekly status reports and bi-weekly steering committee meetings are mandatory.
+5.4  A detailed project plan (WBS) with milestones and critical path must be included
+     in the proposal.
+5.5  A comprehensive testing strategy (unit, integration, UAT, performance, security)
+     must be proposed.
+5.6  A training program for end users, power users, and administrators must be included
+     in scope with at least 8 hours of training material.
+5.7  Hypercare support period of minimum 4 weeks post go-live must be included.
+
+------------------------------------------------------------------------
+6. SUSTAINABILITY AND ESG
+------------------------------------------------------------------------
+6.1  The vendor must have a published Corporate Social Responsibility (CSR) or ESG policy
+     and report (last 12 months).
+6.2  Carbon footprint reduction initiatives or a net-zero/carbon neutral roadmap is
+     strongly preferred and will be positively weighted in evaluation.
+6.3  A diversity, equity, and inclusion (DEI) policy covering the vendor's workforce
+     practices must be provided.
+6.4  The vendor must comply with applicable labor laws in all countries of operation and
+     must not use forced or child labor in its supply chain (Modern Slavery Act compliance).
+
+------------------------------------------------------------------------
+7. EVALUATION CRITERIA WEIGHTS
+------------------------------------------------------------------------
+Category                          | Weight
+----------------------------------|-------
+Technical Fit                     | 30%
+Vendor Qualification & References | 20%
+Commercial / Pricing              | 20%
+Project Approach & Timeline       | 15%
+Security & Compliance             | 10%
+ESG / Sustainability               | 5%
+
+------------------------------------------------------------------------
+8. MANDATORY DELIVERABLES IN PROPOSAL
+------------------------------------------------------------------------
+Vendors must include the following in their response:
+  - Executive summary (max 2 pages)
+  - Company profile and financial summary
+  - Proposed solution architecture diagram
+  - Requirements compliance matrix (against this document)
+  - Detailed project plan and timeline
+  - Staffing plan with CVs for key personnel
+  - Pricing breakdown (by phase and category)
+  - References (min. 3, with contact information)
+  - Security and compliance certifications
+  - Sample SLA agreement
+  - ESG policy summary
+
+------------------------------------------------------------------------
+END OF DOCUMENT
+------------------------------------------------------------------------
