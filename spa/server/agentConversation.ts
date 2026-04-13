@@ -85,9 +85,27 @@ function parseRfpOutput(text: string): RfpOutput {
   return JSON.parse(jsonMatch[0]) as RfpOutput;
 }
 
+/** Validate that a URL uses only http or https to prevent SSRF attacks */
+function validateHttpUrl(url: string, label: string): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new Error(`${label} is not a valid URL.`);
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error(`${label} must use the http or https protocol.`);
+  }
+  return parsed;
+}
+
 /** Forward a tool call to the MCP server and return the result */
 async function callMcpTool(mcpServerUrl: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
-  const response = await fetch(`${mcpServerUrl}/mcp`, {
+  // Validate the MCP server URL before making the request
+  const validatedUrl = validateHttpUrl(mcpServerUrl, 'MCP server URL');
+  const endpoint = new URL('/mcp', validatedUrl).toString();
+
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -164,6 +182,10 @@ export async function runRfpConversation(
   rfpBudget: number,
   emit: (event: SseEvent) => void,
 ): Promise<RfpOutput> {
+  // Validate URLs before use to prevent SSRF
+  validateHttpUrl(config.projectEndpoint, 'Foundry project endpoint');
+  validateHttpUrl(config.mcpServerUrl, 'MCP server URL');
+
   const project = new AIProjectClient(config.projectEndpoint, new DefaultAzureCredential());
   const openai = project.getOpenAIClient();
 
