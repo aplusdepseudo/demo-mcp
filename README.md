@@ -30,6 +30,7 @@ Thanks to Lucas for the original repository that is the base we used for another
 ### 1) Install dependencies
 
 ```bash
+cd mcp
 npm install
 ```
 
@@ -102,10 +103,10 @@ npx -y @modelcontextprotocol/inspector
 
 The project has two layers:
 
-1. A **domain API layer** in `src/api.ts` that returns mock business data and applies filtering logic.
-2. An **MCP layer** in `src/mcp.ts` that exposes this domain logic as MCP tools with validated input schemas (`zod`).
+1. A **domain API layer** in `mcp/src/api.ts` that returns mock business data and applies filtering logic.
+2. An **MCP layer** in `mcp/src/mcp.ts` that exposes this domain logic as MCP tools with validated input schemas (`zod`).
 
-### Domain API (`src/api.ts`)
+### Domain API (`mcp/src/api.ts`)
 
 The domain API provides grouped functions for procurement entities:
 
@@ -124,11 +125,11 @@ Each `get*` function returns either:
 - A typed object/list, or
 - A standardized not-found payload (`{ error: "... not found" }`) for lookup-by-id methods.
 
-### MCP Server (`src/mcp.ts` + `src/server.ts`)
+### MCP Server (`mcp/src/mcp.ts` + `mcp/src/server.ts`)
 
-`src/mcp.ts` registers tools in the naming format `action_category` (`get_*`, `list_*`) and maps each tool to a domain API function.
+`mcp/src/mcp.ts` registers tools in the naming format `action_category` (`get_*`, `list_*`) and maps each tool to a domain API function.
 
-`src/server.ts` exposes:
+`mcp/src/server.ts` exposes:
 
 - `GET /` for status
 - `/mcp` for Streamable HTTP MCP requests
@@ -141,13 +142,14 @@ Notes about transport behavior:
 ## 📂 Project Structure
 
 ```text
-src/
-  api.ts
-  mcp.ts
-  server.ts
-  index.ts
-build/
-  ...compiled js
+mcp/
+  src/
+    api.ts
+    mcp.ts
+    server.ts
+    index.ts
+  build/
+    ...compiled js
 ```
 
 ## 💡 Notes
@@ -194,6 +196,7 @@ Before deploying with Azure CLI, make sure your current public IP is allowed in 
 **Option A — Deploy with Azure CLI (ZIP deploy):**
 
 ```bash
+cd mcp
 npm install
 npm run build
 mkdir -p package
@@ -201,9 +204,10 @@ tar -cavf ./package/build.zip -C ./build/ *
 az webapp deploy --name <app-name> --resource-group <resource-group> --src-path ./package/build.zip --type zip
 ```
 
-**Option B — Use the existing npm scripts from `package.json`:**
+**Option B — Use the existing npm scripts from `mcp/package.json`:**
 
 ```bash
+cd mcp
 # Optional: update values in package.json > config
 # - resourceGroup
 # - resourceWebApp
@@ -311,9 +315,10 @@ az deployment group create \
   --parameters infra/main.bicepparam
 ```
 
-### 3b) Or use the existing npm script from `package.json`
+### 3b) Or use the existing npm script from `mcp/package.json`
 
 ```bash
+cd mcp
 # Optional: update value in package.json > config.resourceGroup
 npm run deploy-infra
 ```
