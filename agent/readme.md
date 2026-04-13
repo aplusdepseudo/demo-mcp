@@ -95,11 +95,20 @@ cp .env.example .env
 | `MCP_SERVER_URL` | optional | URL of the MCP server (default: `http://localhost:3000`) |
 | `OUTPUT_DIR` | optional | Output directory for generated reports (default: `./output`) |
 
-### 3) Provision the agent
+### 3) Provision the agent (local / development)
 
 ```bash
-npm start
+npm start          # runs via tsx directly (no build step)
 ```
+
+### 4) Build and provision (production / CI-CD)
+
+```bash
+npm run build      # compiles TypeScript → build/
+npm run provision  # runs build/index.js with env vars already set
+```
+
+Or use the convenience scripts from the `infra/` directory (see [Deployment](#%EF%B8%8F-deployment) below).
 
 The output is a JSON object the SPA needs to start a conversation:
 
@@ -111,18 +120,46 @@ The output is a JSON object the SPA needs to start a conversation:
 }
 ```
 
-### 4) Build for production
+---
+
+## 🚀 Deployment
+
+Once the Azure infrastructure is provisioned via `infra/` (see `infra/readme.md`), deploy the agent to Azure AI Foundry from the `infra/` directory:
 
 ```bash
-npm run build   # compiles TypeScript → build/
+cd infra
+
+# Build TypeScript + provision the agent in Foundry in one step:
+npm run deploy-agent
 ```
 
----
+This script:
+1. Compiles the agent TypeScript (`npm run build` in `agent/`)
+2. Runs the provisioner (`node build/index.js`)
+
+Before running, ensure the following env vars are set (e.g., in `agent/.env` or your CI/CD environment):
+
+| Variable | Value for deployed environment |
+|----------|-------------------------------|
+| `FOUNDRY_PROJECT_ENDPOINT` | `https://demo-agentic-aif.services.ai.azure.com/api/projects/demo-agentic-aif-proj` |
+| `FOUNDRY_MODEL_NAME` | `gpt-5.1` |
+| `MCP_SERVER_URL` | `https://demo-agentic-wa.azurewebsites.net` |
+
+The `foundryProjectEndpoint` and `foundryModelName` reference values are also stored in the `config` block of `infra/package.json` for convenience:
+
+```json
+"config": {
+  "foundryProjectEndpoint": "https://<account>.services.ai.azure.com/api/projects/<project>",
+  "foundryModelName": "gpt-5.1"
+}
+```
+
+> **Note:** `npm run deploy-agent` must be run **after** `npm run deploy-infra` and `npm run deploy-app` (the MCP server must be running at its deployed URL before the agent is provisioned).
 
 ## 🔄 End-to-End Flow
 
 ```
-1. npm start
+1. cd infra && npm run deploy-agent   (or: cd agent && npm start)
    → provisionRFPAgent()
    → uploads rfp-prerequisites.txt to a Foundry vector store
    → creates agent version in Foundry with file_search + function tools
