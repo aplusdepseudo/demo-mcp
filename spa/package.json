@@ -1,0 +1,33 @@
+{
+  "name": "rfp-spa",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vue.js SPA for RFP documentation generation using Azure AI Foundry agent",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "tsc -p tsconfig.server.json && vite build",
+    "start": "node dist/server/index.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@azure/ai-projects": "^2.0.2",
+    "@azure/identity": "^4.13.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2",
+    "vue": "^3.5.17"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.3",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.3"
+  }
+}
