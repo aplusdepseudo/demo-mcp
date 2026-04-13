@@ -3,21 +3,11 @@
     <h2>Agent Configuration</h2>
     <div class="form-grid">
       <label>
-        <span>Foundry Project Endpoint</span>
-        <input
-          v-model="config.projectEndpoint"
-          type="url"
-          placeholder="https://<account>.services.ai.azure.com/api/projects/<project>"
-          :disabled="loading"
-        />
-      </label>
-
-      <label>
         <span>Agent Name</span>
         <input
           v-model="config.agentName"
           type="text"
-          placeholder="rfp-documentation-agent"
+          placeholder="rfp-agent"
           :disabled="loading"
         />
       </label>
@@ -28,16 +18,6 @@
           v-model="config.agentVersion"
           type="text"
           placeholder="1"
-          :disabled="loading"
-        />
-      </label>
-
-      <label>
-        <span>MCP Server URL</span>
-        <input
-          v-model="config.mcpServerUrl"
-          type="url"
-          placeholder="http://localhost:3000"
           :disabled="loading"
         />
       </label>
@@ -94,10 +74,8 @@ const props = defineProps<{
 }>();
 
 const config = reactive({
-  projectEndpoint: '',
-  agentName: 'rfp-documentation-agent',
+  agentName: 'rfp-agent',
   agentVersion: '1',
-  mcpServerUrl: 'http://localhost:3000',
 });
 
 const rfpTopic = ref('');
@@ -105,7 +83,6 @@ const rfpBudget = ref(500000);
 
 const isValid = computed(
   () =>
-    config.projectEndpoint.trim() !== '' &&
     config.agentName.trim() !== '' &&
     rfpTopic.value.trim() !== '' &&
     rfpBudget.value > 0,
@@ -114,10 +91,8 @@ const isValid = computed(
 function handleSubmit() {
   if (!isValid.value || props.loading) return;
   emit('submit', {
-    projectEndpoint: config.projectEndpoint.trim(),
     agentName: config.agentName.trim(),
     agentVersion: config.agentVersion.trim(),
-    mcpServerUrl: config.mcpServerUrl.trim(),
     rfpTopic: rfpTopic.value.trim(),
     rfpBudget: rfpBudget.value,
   });

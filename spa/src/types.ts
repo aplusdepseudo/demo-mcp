@@ -41,10 +41,8 @@ export interface RfpOutput {
 // API request / response shapes
 
 export interface GenerateRequest {
-  projectEndpoint: string;
   agentName: string;
   agentVersion: string;
-  mcpServerUrl: string;
   rfpTopic: string;
   rfpBudget: number;
 }

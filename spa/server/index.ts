@@ -55,7 +55,6 @@ app.post('/api/generate', async (req, res) => {
 
   // Validate required fields
   const required: Array<keyof GenerateRequest> = [
-    'projectEndpoint',
     'agentName',
     'rfpTopic',
     'rfpBudget',
@@ -82,12 +81,20 @@ app.post('/api/generate', async (req, res) => {
   }
 
   try {
+    const projectEndpoint = process.env.FOUNDRY_PROJECT_ENDPOINT;
+    const mcpServerUrl = process.env.MCP_SERVER_URL ?? 'http://localhost:3000';
+
+    if (!projectEndpoint) {
+      res.status(500).json({ error: 'FOUNDRY_PROJECT_ENDPOINT is not configured on the server.' });
+      return;
+    }
+
     const output = await runRfpConversation(
       {
-        projectEndpoint: body.projectEndpoint,
+        projectEndpoint,
         agentName: body.agentName,
         agentVersion: body.agentVersion ?? '1',
-        mcpServerUrl: body.mcpServerUrl ?? process.env.MCP_SERVER_URL ?? 'http://localhost:3000',
+        mcpServerUrl,
       },
       body.rfpTopic,
       body.rfpBudget,
