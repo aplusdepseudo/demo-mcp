@@ -166,10 +166,11 @@ The `foundryProjectEndpoint` and `foundryModelName` reference values are also st
    → creates agent version in Foundry with file_search + MCP procurement tool
    → prints { agentName, agentVersion, vectorStoreId }
 
-2. SPA receives agentName + agentVersion
-   → calls buildRfpPrompt(topic, budget) to get the initial user message
-   → creates a Foundry conversation via Conversations API
-   → sends the prompt with the agent reference via Responses API
+2. SPA receives agentName
+   → authenticates the user via MSAL (Entra ID)
+   → builds the RFP prompt (topic, budget)
+   → creates a Foundry conversation via Conversations REST API
+   → sends the prompt with the agent reference via Responses REST API
    → agent calls MCP tools server-side (list_suppliers, get_risk_score, etc.)
    → receives the agent's final JSON text response
 
@@ -240,7 +241,7 @@ Uses `DefaultAzureCredential` — automatically picks up Azure CLI (`az login`),
 
 ## ☁️ Deploying to Azure
 
-Once the infrastructure in `infra/` is provisioned, run `npm start` from within an Azure environment (App Service, Container, etc.) to provision the agent. The SPA then connects to the agent using the returned `agentName` and `agentVersion`.
+Once the infrastructure in `infra/` is provisioned, run `npm start` from within an Azure environment (App Service, Container, etc.) to provision the agent. The SPA then connects to the agent using the returned `agentName`.
 
-For fully private connectivity between the SPA/backend and the MCP server, use the VNET injection configured in `infra/main.bicep`.
+For fully private connectivity between the agent and the MCP server, use the VNET injection configured in `infra/main.bicep`.
 

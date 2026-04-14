@@ -2,18 +2,21 @@
 
 A **Vue.js + TypeScript** single-page application that drives the end-to-end conversation with the Azure AI Foundry RFP Documentation Agent and presents the generated output in a structured, tab-based UI.
 
+The SPA is a **pure static frontend** — it authenticates via MSAL (Entra ID), calls the Azure AI Foundry REST API directly from the browser, and renders the results. No backend server is needed.
+
 ---
 
 ## 📋 What This Does
 
 | Responsibility | Where |
 |----------------|-------|
-| Accept RFP topic, budget and Foundry agent config from the user | `src/components/RfpForm.vue` |
-| Stream real-time progress from the backend to the UI | `src/App.vue` + `src/components/ProgressLog.vue` |
-| Drive the Foundry conversation loop (thread → run → tool calls → result) | `server/agentConversation.ts` |
-| Proxy `list_vendors` / `get_vendor_risk_score` tool calls to the MCP server | `server/agentConversation.ts` |
+| Accept RFP topic, budget and agent name from the user | `src/components/RfpForm.vue` |
+| Authenticate with Azure via MSAL (Entra ID popup) | `src/services/auth.ts` |
+| Create a Foundry conversation and send the RFP prompt | `src/services/foundryClient.ts` |
+| Display real-time progress in the UI | `src/App.vue` + `src/components/ProgressLog.vue` |
 | Display checklists and vendor tables in a tabbed layout | `src/components/RfpResults.vue` |
-| Serve the built Vue SPA and provide the `/api/generate` SSE endpoint | `server/index.ts` |
+
+> **Note:** Tool calls (MCP procurement tools, file_search) are handled **entirely server-side** by Azure AI Foundry. The SPA never calls the MCP server directly.
 
 ---
 
@@ -23,24 +26,22 @@ A **Vue.js + TypeScript** single-page application that drives the end-to-end con
 spa/
 ├── src/                     Vue.js frontend (TypeScript, Vite)
 │   ├── main.ts              App entry point
-│   ├── App.vue              Root component — manages state and SSE stream
-│   ├── types.ts             Shared TypeScript types (frontend + backend)
+│   ├── App.vue              Root component — manages state and Foundry calls
+│   ├── types.ts             Shared TypeScript types
 │   ├── vite-env.d.ts        Vite / Vue ambient type declarations
+│   ├── services/
+│   │   ├── auth.ts          MSAL browser auth (Entra ID token acquisition)
+│   │   └── foundryClient.ts Foundry REST client (Conversations + Responses API)
 │   └── components/
-│       ├── RfpForm.vue      Configuration + RFP input form
+│       ├── RfpForm.vue      Agent name + RFP input form
 │       ├── ProgressLog.vue  Scrollable real-time progress log
 │       ├── RfpResults.vue   Tabbed results view
 │       ├── ChecklistTable.vue   Reusable checklist table
 │       └── RiskBadge.vue    Coloured risk-level pill badge
 │
-├── server/                  Express backend (TypeScript, Node.js)
-│   ├── index.ts             Server entry point + /api/generate SSE handler
-│   └── agentConversation.ts Foundry conversation loop + MCP proxy
-│
 ├── index.html               Vite HTML template
-├── vite.config.ts           Vite config (proxy /api → backend in dev)
-├── tsconfig.json            TypeScript config for frontend
-├── tsconfig.server.json     TypeScript config for backend
+├── vite.config.ts           Vite config
+├── tsconfig.json            TypeScript config
 ├── package.json             Scripts + dependencies
 ├── .env.example             Environment variable documentation
 └── readme.md                ← You are here
@@ -55,10 +56,8 @@ spa/
 | Frontend framework | [Vue.js 3](https://vuejs.org/) (Composition API, `<script setup>`) |
 | Language | **TypeScript** (strict mode) |
 | Build tool | [Vite](https://vitejs.dev/) v6 |
-| Backend | [Express](https://expressjs.com/) v4 |
-| Agent SDK | [`@azure/ai-projects`](https://www.npmjs.com/package/@azure/ai-projects) v2 |
-| Authentication | [`@azure/identity`](https://www.npmjs.com/package/@azure/identity) — `DefaultAzureCredential` |
-| Real-time updates | **Server-Sent Events (SSE)** |
+| Authentication | [`@azure/msal-browser`](https://www.npmjs.com/package/@azure/msal-browser) — Entra ID (popup + silent token) |
+| Agent API | Azure AI Foundry [Conversations + Responses REST API](https://learn.microsoft.com/azure/ai-services/openai/reference) (direct `fetch` from browser) |
 
 ---
 
@@ -67,13 +66,12 @@ spa/
 ### Prerequisites
 
 1. **Node.js 18+**
-2. The **agent provisioned** in Azure AI Foundry (run `cd agent && npm start` first) to obtain `agentName` + `agentVersion`.
-3. The **MCP procurement server** running:
-   ```bash
-   cd mcp && npm install && npm run start
-   ```
-4. [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) authenticated: `az login`.
-5. Your Azure identity must have the **Azure AI User** role on the Foundry project resource.
+2. The **agent provisioned** in Azure AI Foundry (run `cd agent && npm start` first) to obtain `agentName`.
+3. An **Entra ID app registration** configured for SPA authentication:
+   - Azure Portal → Entra ID → App registrations → New registration
+   - Set a **SPA** redirect URI (e.g. `http://localhost:5173` for development)
+   - Grant API permission: **Cognitive Services User** (`https://cognitiveservices.azure.com/.default`)
+4. Your Azure identity must have the **Azure AI User** role on the Foundry project resource.
 
 ### 1) Install dependencies
 
@@ -90,9 +88,9 @@ cp .env.example .env
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `FOUNDRY_PROJECT_ENDPOINT` | ✅ | Foundry project endpoint URL |
-| `MCP_SERVER_URL` | optional | MCP server URL (default: `http://localhost:3000`) |
-| `PORT` | optional | Server port (default: `3000`) |
+| `VITE_FOUNDRY_PROJECT_ENDPOINT` | ✅ | Foundry project endpoint URL |
+| `VITE_ENTRA_CLIENT_ID` | ✅ | Entra ID app registration client ID |
+| `VITE_ENTRA_TENANT_ID` | ✅ | Azure AD tenant ID |
 
 ### 3) Run in development mode
 
@@ -100,22 +98,18 @@ cp .env.example .env
 npm run dev
 ```
 
-This starts:
-- **Vite dev server** on `http://localhost:5173` (hot-reload)
-- **Express backend** on `http://localhost:3000` (auto-reload via tsx watch)
-
-Vite proxies all `/api/*` calls to the backend automatically.
+This starts the **Vite dev server** on `http://localhost:5173` with hot-reload.
 
 Open **http://localhost:5173** in your browser.
 
 ### 4) Build for production
 
 ```bash
-npm run build    # Compiles TypeScript (backend) + Vite (frontend)
-npm run start    # Starts the Express server that serves the built SPA
+npm run build     # Builds the Vue SPA → dist/
+npm run preview   # Preview the production build locally
 ```
 
-The production server listens on `http://localhost:3000` (or `$PORT`) and serves both the Vue SPA and the `/api/generate` endpoint.
+The `dist/` folder can be deployed to any static hosting service (Azure Static Web Apps, Blob Storage, Netlify, etc.).
 
 ---
 
@@ -123,10 +117,10 @@ The production server listens on `http://localhost:3000` (or `$PORT`) and serves
 
 | Section | Description |
 |---------|-------------|
-| **Agent Configuration** | Enter the Foundry project endpoint, agent name, agent version, and MCP server URL |
+| **Agent Configuration** | Enter the Foundry agent name (default: `rfp-agent`) |
 | **RFP Details** | Enter the procurement topic and budget |
-| **Generate button** | Starts the agent conversation; the button is disabled until required fields are filled |
-| **Progress Log** | Live stream of status messages and tool-call events |
+| **Generate button** | Starts the agent conversation; disabled until required fields are filled |
+| **Progress Log** | Live status messages as the conversation progresses |
 | **Results (tabs)** | Prerequisites / Technical / Functional checklists + Vendor Assessment + Targeted Vendors |
 | **Download JSON** | Download the raw `RfpOutput` as a `.json` file |
 
@@ -135,29 +129,36 @@ The production server listens on `http://localhost:3000` (or `$PORT`) and serves
 ## 🔄 Conversation Flow
 
 ```
-Browser → POST /api/generate (SSE)
+Browser (App.vue)
   ↓
-server/index.ts
+  1. getAccessToken()              ← MSAL popup/silent (Entra ID)
   ↓
-server/agentConversation.ts
-  ├─ AIProjectClient.getOpenAIClient()
-  ├─ openai.beta.threads.create()
-  ├─ openai.beta.threads.messages.create()  ← RFP prompt
-  ├─ openai.beta.threads.runs.create()      ← references agentName
-  └─ polling loop:
-       ├─ requires_action → list_vendors    → MCP /mcp (list_suppliers)
-       ├─ requires_action → get_vendor_risk_score → MCP /mcp (get_risk_score)
-       └─ completed → retrieve assistant message → parseRfpOutput → SSE result
+  2. FoundryClient.runRfpConversation()
+     ├─ POST /openai/conversations  ← Create conversation with RFP prompt
+     ├─ POST /openai/responses      ← Send to agent (agentName reference)
+     │   └─ Foundry handles all tool calls server-side:
+     │       ├─ file_search (RAG on prerequisites document)
+     │       └─ MCP tools (list_suppliers, get_risk_score, …)
+     └─ Parse output_text → RfpOutput JSON
+  ↓
+  3. Display results in tabbed UI
 ```
 
 ---
 
 ## 🔐 Authentication
 
-Uses `DefaultAzureCredential` on the backend — automatically picks up:
+Uses **MSAL browser** (`@azure/msal-browser`) for Entra ID authentication:
 
-- Azure CLI credentials (`az login`)
-- Environment variables (`AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`)
-- Managed Identity when deployed on Azure
+1. On first click of "Generate", a popup asks the user to sign in with their Azure AD account
+2. Subsequent calls use **silent token acquisition** (cached tokens)
+3. The bearer token is sent in the `Authorization` header of all Foundry REST API calls
+4. Token scope: `https://cognitiveservices.azure.com/.default`
+
+### Required Entra ID configuration
+
+- **App registration** with SPA redirect URI (`http://localhost:5173` for dev)
+- **API permission**: Cognitive Services User
+- The user must have **Azure AI User** role on the Foundry project resource
 
 ---
