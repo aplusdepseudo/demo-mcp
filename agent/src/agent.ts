@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { AIProjectClient, type FunctionTool, type FileSearchTool } from '@azure/ai-projects';
+import { AIProjectClient, type FileSearchTool } from '@azure/ai-projects';
 import { DefaultAzureCredential } from '@azure/identity';
 import ExcelJS from 'exceljs';
 
@@ -66,48 +66,6 @@ export interface RfpOutput {
 }
 
 // -------------------------------------------------------------------------
-// Agent tool definitions
-// Exported so the SPA knows which function call names to handle.
-// -------------------------------------------------------------------------
-
-export const LIST_VENDORS_TOOL: FunctionTool = {
-  type: 'function',
-  name: 'list_vendors',
-  description:
-    'List all vendors (suppliers) from the procurement system. Returns name, status, category, country, and risk score for each vendor.',
-  strict: false,
-  parameters: {
-    type: 'object',
-    properties: {
-      category: {
-        type: 'string',
-        description: 'Optional category filter (e.g., "ERP Software", "IT Services").',
-      },
-    },
-    required: [],
-    additionalProperties: false,
-  },
-};
-
-export const GET_VENDOR_RISK_TOOL: FunctionTool = {
-  type: 'function',
-  name: 'get_vendor_risk_score',
-  description: 'Get the detailed risk assessment for a specific vendor by their vendor ID.',
-  strict: true,
-  parameters: {
-    type: 'object',
-    properties: {
-      vendor_id: {
-        type: 'string',
-        description: 'The vendor/supplier ID (e.g., "SUP-1000").',
-      },
-    },
-    required: ['vendor_id'],
-    additionalProperties: false,
-  },
-};
-
-// -------------------------------------------------------------------------
 // Agent system instructions
 // -------------------------------------------------------------------------
 
@@ -116,10 +74,10 @@ const AGENT_INSTRUCTIONS = `You are an expert procurement analyst specializing i
 Your responsibilities:
 1. Review the enterprise RFP prerequisites from the knowledge base and extract a compliance checklist.
 2. Analyze the RFP topic and generate both a TECHNICAL checklist and a FUNCTIONAL checklist tailored to the topic.
-3. Review the list of vendors provided via tools, verify their eligibility, and produce a shortlist of targeted vendors with justifications.
+3. Use the procurement MCP tools to retrieve supplier data and risk assessments, verify their eligibility, and produce a shortlist of targeted vendors with justifications.
 4. Respond in structured JSON so the calling application can generate Excel reports.
 
-Always base prerequisites checklists on the knowledge base document. Always call the vendor tools to get current vendor data before producing the vendor shortlist.`;
+Always base prerequisites checklists on the knowledge base document. Always use the procurement tools to get current vendor data before producing the vendor shortlist.`;
 
 // -------------------------------------------------------------------------
 // Prompt builder
@@ -152,8 +110,8 @@ Please perform ALL of the following steps IN ORDER:
    capabilities the solution must support (modules, workflows, reporting, user roles, etc.).
 
 4. VENDOR SANITY CHECK
-   Call the list_vendors tool to retrieve all vendors. For each vendor returned:
-   - Call get_vendor_risk_score to get their risk profile.
+   Use the procurement tools to retrieve all suppliers. For each supplier:
+   - Retrieve their risk assessment profile.
    - Evaluate eligibility: a vendor is ELIGIBLE if their risk score < 7.
    - Apply a category sanity check: flag vendors whose category does not match
      the RFP topic as MISMATCHED.
@@ -241,11 +199,21 @@ async function createAgentVersion(
     vector_store_ids: [vectorStoreId],
   };
 
+  const mcpEndpoint = new URL('/mcp', config.mcpServerUrl).toString();
+
   const agent = await project.agents.createVersion('rfp-agent', {
     kind: 'prompt',
     model: config.modelDeployment,
     instructions: AGENT_INSTRUCTIONS,
-    tools: [fileSearchTool, LIST_VENDORS_TOOL, GET_VENDOR_RISK_TOOL],
+    tools: [
+      fileSearchTool,
+      {
+        type: 'mcp',
+        server_label: 'procurement',
+        server_url: mcpEndpoint,
+        require_approval: 'never',
+      },
+    ],
   });
 
   console.log(`  Agent created: ${agent.name} (version ${agent.version})`);

@@ -2,6 +2,8 @@
 
 ## Build & Run
 
+### MCP Server (mock procurement data)
+
 All MCP server commands run from the `mcp/` directory:
 
 ```bash
@@ -12,29 +14,56 @@ npm run dev          # Watch mode with auto-reload
 npm run inspect      # Launch MCP Inspector UI
 ```
 
+### Agent (Azure AI Foundry provisioner)
+
+```bash
+cd agent
+npm install
+npm start            # Provision the agent in Foundry (tsx)
+npm run build        # TypeScript → build/ (tsc)
+```
+
+### SPA (Vue 3 + Express backend)
+
+```bash
+cd spa
+npm install
+npm run dev          # Vite dev server + Express backend (concurrently)
+npm run build        # Build Vue SPA for production
+npm run start        # Start production Express server
+```
+
 No test framework is configured.
 
 ## Architecture
 
-This is a **stateless MCP (Model Context Protocol) server** that exposes mock procurement data as MCP tools over Streamable HTTP.
+This is a three-component monorepo for an RFP (Request for Proposal) documentation automation demo:
 
-The codebase has two layers:
+1. **MCP Server** (`mcp/`) — Stateless MCP server that exposes mock procurement data (suppliers, POs, invoices, contracts, RFPs, proposals, risk scores) as MCP tools over Streamable HTTP at `POST /mcp`.
 
-1. **Domain API** (`mcp/src/api.ts`) — Pure functions that query in-memory `Record<string, T>` data stores and return typed objects or `{ error: "... not found" }` for missing IDs. Each entity type (suppliers, POs, invoices, contracts, RFPs, proposals, requisitions) follows the same pattern: a `list` function with optional filter parameters and a `get` function by ID.
+2. **Agent** (`agent/`) — Azure AI Foundry agent provisioner. Creates an agent in Foundry with:
+   - `file_search` tool (vector store with RFP prerequisites document)
+   - `mcp` tool (native MCP connection to the procurement server — all tool calls handled server-side by Foundry)
 
-2. **MCP Tool Layer** (`mcp/src/mcp.ts`) — Registers each domain function as an MCP tool using `@modelcontextprotocol/sdk`. Input schemas are validated with Zod. Tool results are always returned as `{ content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }`.
+3. **SPA** (`spa/`) — Vue 3 frontend + Express backend. The SPA **only displays agent progress** — it never calls MCP tools directly. The backend creates a Foundry conversation, sends the prompt via the Conversations + Responses API, and streams status events to the frontend via SSE.
 
-3. **HTTP Server** (`mcp/src/server.ts`) — Express app created via `createMcpExpressApp` from the SDK. Exposes `GET /` (health) and `POST /mcp` (MCP requests). Each request creates a fresh `StreamableHTTPServerTransport` with no session management (`sessionIdGenerator: undefined`).
+4. **Infra** (`infra/`) — Azure Bicep templates + deployment scripts.
 
-`mcp/src/index.ts` is just the entry point that calls `startServer()`.
+### Key design principle
+
+The agent handles all tool calls (MCP procurement tools, file_search) **server-side in Azure AI Foundry**. The SPA is a thin display layer that creates a conversation, waits for the agent response, and renders the results.
+
+## Domain Layer
+
+The domain API (`mcp/src/api.ts`) provides pure functions that query in-memory `Record<string, T>` data stores and return typed objects or `{ error: "... not found" }` for missing IDs. Each entity type follows the same pattern: a `list` function with optional filter parameters and a `get` function by ID.
 
 ## Conventions
 
-- **ESM throughout**: `"type": "module"` in package.json; imports use `.js` extensions even for `.ts` source files (required by Node ESM resolution).
+- **ESM throughout**: `"type": "module"` in all package.json files; imports use `.js` extensions even for `.ts` source files (required by Node ESM resolution).
 - **Tool naming**: MCP tools follow `action_entity` format — `get_supplier`, `list_purchase_orders`, `get_risk_score`.
 - **Zod v3 import path**: Zod is imported as `zod/v3` (not bare `zod`), matching the installed version's export map.
 - **API doc comments**: Each API section in `mcp/src/api.ts` uses a block-comment header with description, inputs, and outputs (written in French).
-- **No session state**: The server is fully stateless — a new MCP server + transport is created per request and torn down on response close.
+- **No session state**: The MCP server is fully stateless — a new MCP server + transport is created per request and torn down on response close.
 - **Environment variables**: `PORT` (server port, default 3000), `WEBSITE_HOSTNAME` (allowed Host headers for DNS rebinding protection, comma-separated).
 
 ## Git Workflow

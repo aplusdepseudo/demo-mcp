@@ -6,10 +6,9 @@ export interface ConversationConfig {
   projectEndpoint: string;
   agentName: string;
   agentVersion: string;
-  mcpServerUrl: string;
 }
 
-/** Build the initial RFP prompt — mirrors buildRfpPrompt from agent/src/rfpAgent.ts */
+/** Build the initial RFP prompt */
 function buildRfpPrompt(rfpTopic: string, rfpBudget: number): string {
   return `
 You are preparing an RFP documentation package for the following procurement:
@@ -35,8 +34,8 @@ Please perform ALL of the following steps IN ORDER:
    capabilities the solution must support (modules, workflows, reporting, user roles, etc.).
 
 4. VENDOR SANITY CHECK
-   Call the list_vendors tool to retrieve all vendors. For each vendor returned:
-   - Call get_vendor_risk_score to get their risk profile.
+   Use the procurement tools to retrieve all suppliers. For each supplier:
+   - Retrieve their risk assessment profile.
    - Evaluate eligibility: a vendor is ELIGIBLE if their risk score < 7.
    - Apply a category sanity check: flag vendors whose category does not match
      the RFP topic as MISMATCHED.
@@ -86,7 +85,7 @@ function parseRfpOutput(text: string): RfpOutput {
 }
 
 /** Validate that a URL uses only http or https to prevent SSRF attacks */
-function validateHttpUrl(url: string, label: string): URL {
+function validateHttpUrl(url: string, label: string): void {
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -96,85 +95,14 @@ function validateHttpUrl(url: string, label: string): URL {
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`${label} must use the http or https protocol.`);
   }
-  return parsed;
-}
-
-/** Forward a tool call to the MCP server and return the result */
-async function callMcpTool(mcpServerUrl: string, toolName: string, args: Record<string, unknown>): Promise<unknown> {
-  // Validate the MCP server URL before making the request
-  const validatedUrl = validateHttpUrl(mcpServerUrl, 'MCP server URL');
-  const endpoint = new URL('/mcp', validatedUrl).toString();
-
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'tools/call',
-      params: { name: toolName, arguments: args },
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`MCP server error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = (await response.json()) as {
-    result?: { content?: Array<{ type: string; text: string }> };
-    error?: { message: string };
-  };
-
-  if (data.error) {
-    throw new Error(`MCP tool error: ${data.error.message}`);
-  }
-
-  const text = data.result?.content?.[0]?.text;
-  if (text) {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return text;
-    }
-  }
-
-  return data.result;
-}
-
-/** Handle a single function tool call from the agent */
-async function handleToolCall(
-  toolName: string,
-  rawArgs: string,
-  mcpServerUrl: string,
-): Promise<unknown> {
-  const args = (rawArgs ? JSON.parse(rawArgs) : {}) as Record<string, unknown>;
-
-  if (toolName === 'list_vendors') {
-    return callMcpTool(mcpServerUrl, 'list_suppliers', { category: args['category'] ?? undefined });
-  }
-
-  if (toolName === 'get_vendor_risk_score') {
-    return callMcpTool(mcpServerUrl, 'get_risk_score', { supplier_id: args['vendor_id'] });
-  }
-
-  throw new Error(`Unknown agent tool: ${toolName}`);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * Run the full RFP conversation with the provisioned Azure AI Foundry agent.
  *
- * Uses the OpenAI-compatible Assistants API exposed by the Foundry project
- * endpoint (project.getOpenAIClient()). The conversation loop:
- *   1. Create a thread
- *   2. Post the initial RFP prompt as a user message
- *   3. Create a run referencing the provisioned agent
- *   4. Poll until completed, handling any list_vendors / get_vendor_risk_score
- *      function calls by proxying them to the MCP server
- *   5. Extract the assistant's final JSON response and parse it into RfpOutput
+ * Uses the Conversations + Responses API. The agent handles all tool calls
+ * (MCP procurement tools, file_search) server-side in Foundry — the SPA
+ * only creates the conversation, sends the prompt, and reads the response.
  */
 export async function runRfpConversation(
   config: ConversationConfig,
@@ -182,102 +110,46 @@ export async function runRfpConversation(
   rfpBudget: number,
   emit: (event: SseEvent) => void,
 ): Promise<RfpOutput> {
-  // Validate URLs before use to prevent SSRF
   validateHttpUrl(config.projectEndpoint, 'Foundry project endpoint');
-  validateHttpUrl(config.mcpServerUrl, 'MCP server URL');
 
   const project = new AIProjectClient(config.projectEndpoint, new DefaultAzureCredential());
   const openai = project.getOpenAIClient();
 
-  // ── 1. Create thread ────────────────────────────────────────────────────
-  emit({ type: 'status', message: 'Creating conversation thread…' });
-  const thread = await openai.beta.threads.create();
-
-  // ── 2. Post the RFP prompt ──────────────────────────────────────────────
+  // ── 1. Create conversation with initial user message ────────────────────
+  emit({ type: 'status', message: 'Creating conversation…' });
   const prompt = buildRfpPrompt(rfpTopic, rfpBudget);
-  await openai.beta.threads.messages.create(thread.id, {
-    role: 'user',
-    content: prompt,
+
+  const conversation = await openai.conversations.create({
+    items: [
+      { type: 'message', role: 'user', content: prompt },
+    ],
   });
 
-  // ── 3. Start the run ────────────────────────────────────────────────────
+  // ── 2. Generate response (all tool calls handled server-side) ───────────
   emit({
     type: 'status',
-    message: `Starting agent run (${config.agentName} v${config.agentVersion})…`,
+    message: `Waiting for agent response (${config.agentName})… This may take a few minutes.`,
   });
 
-  // The assistant_id is the Foundry agent name. If the Foundry project exposes
-  // versioned assistants, use "<agentName>/<agentVersion>" instead.
-  let run = await openai.beta.threads.runs.create(thread.id, {
-    assistant_id: config.agentName,
-  });
+  const response = await openai.responses.create(
+    { conversation: conversation.id },
+    { body: { agent: { name: config.agentName, type: 'agent_reference' } } },
+  );
 
-  // ── 4. Polling loop ─────────────────────────────────────────────────────
-  const terminalStatuses = new Set(['completed', 'failed', 'cancelled', 'expired']);
+  // ── 3. Extract and parse the agent's response ──────────────────────────
+  emit({ type: 'status', message: 'Parsing agent response…' });
 
-  while (!terminalStatuses.has(run.status)) {
-    await sleep(2000);
-    // In the latest openai SDK the thread_id is passed as a param object
-    run = await openai.beta.threads.runs.retrieve(run.id, { thread_id: thread.id });
-
-    if (run.status === 'queued' || run.status === 'in_progress') {
-      emit({ type: 'status', message: `Agent is processing… (${run.status})` });
-      continue;
-    }
-
-    if (run.status === 'requires_action' && run.required_action?.type === 'submit_tool_outputs') {
-      const toolCalls = run.required_action.submit_tool_outputs.tool_calls;
-      emit({
-        type: 'status',
-        message: `Agent requested ${toolCalls.length} tool call(s)…`,
-      });
-
-      const toolOutputs: Array<{ tool_call_id: string; output: string }> = [];
-
-      for (const toolCall of toolCalls) {
-        emit({ type: 'tool_call', toolName: toolCall.function.name });
-        try {
-          const result = await handleToolCall(
-            toolCall.function.name,
-            toolCall.function.arguments,
-            config.mcpServerUrl,
-          );
-          toolOutputs.push({
-            tool_call_id: toolCall.id,
-            output: JSON.stringify(result),
-          });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          emit({ type: 'status', message: `Tool call failed: ${msg}` });
-          toolOutputs.push({ tool_call_id: toolCall.id, output: JSON.stringify({ error: msg }) });
-        }
-      }
-
-      run = await openai.beta.threads.runs.submitToolOutputs(run.id, {
-        thread_id: thread.id,
-        tool_outputs: toolOutputs,
-      });
-    }
+  const outputText = response.output_text;
+  if (!outputText) {
+    throw new Error('Agent returned an empty response.');
   }
 
-  if (run.status !== 'completed') {
-    throw new Error(`Agent run ended with status "${run.status}".`);
+  // ── 4. Cleanup ─────────────────────────────────────────────────────────
+  try {
+    await openai.conversations.delete(conversation.id);
+  } catch {
+    // Best-effort cleanup — not critical
   }
 
-  // ── 5. Extract the final assistant message ──────────────────────────────
-  emit({ type: 'status', message: 'Retrieving agent response…' });
-
-  const messages = await openai.beta.threads.messages.list(thread.id, { order: 'desc' });
-  const assistantMsg = messages.data.find((m) => m.role === 'assistant');
-
-  if (!assistantMsg) {
-    throw new Error('No assistant message found after run completion.');
-  }
-
-  const firstContent = assistantMsg.content[0];
-  if (firstContent.type !== 'text') {
-    throw new Error(`Unexpected content type: ${firstContent.type}`);
-  }
-
-  return parseRfpOutput(firstContent.text.value);
+  return parseRfpOutput(outputText);
 }

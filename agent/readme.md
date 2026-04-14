@@ -16,7 +16,7 @@ This module handles the **server-side lifecycle** of the RFP agent:
 | Parse the agent's JSON response into typed data | `parseRfpOutput` |
 | Generate a formatted Excel report from the agent output | `generateReport` |
 
-The **conversation** (sending the user prompt, handling `list_vendors` / `get_vendor_risk_score` function calls, receiving the JSON response) is owned by the SPA.
+The **conversation** (sending the user prompt, polling the agent's response) is owned by the SPA. Tool calls (MCP procurement tools, file_search) are handled **entirely server-side** in Azure AI Foundry — the SPA never calls MCP tools directly.
 
 ---
 
@@ -27,7 +27,7 @@ agent/
 ├── src/
 │   ├── index.ts          CLI entry point — provisions the agent and prints
 │   │                     agentName + agentVersion + vectorStoreId as JSON
-│   └── agent.ts          All exported types, tool definitions, prompt builder,
+│   └── agent.ts          All exported types, MCP tool config, prompt builder,
 │                         provision/deprovision, parseRfpOutput, generateReport
 ├── assets/
 │   └── rfp-prerequisites.txt   Enterprise RFP prerequisite knowledge document
@@ -43,8 +43,9 @@ agent/
 | Tool | Type | Description |
 |------|------|-------------|
 | `file_search` | Built-in RAG | Searches the uploaded prerequisites document via vector store |
-| `list_vendors` | Function (SPA handles) | Lists all suppliers from the MCP procurement server |
-| `get_vendor_risk_score` | Function (SPA handles) | Retrieves the risk profile for a specific supplier |
+| MCP procurement tools | `mcp` (native) | All tools from the MCP server are auto-discovered by Foundry (list_suppliers, get_risk_score, etc.) |
+
+> **Note:** The MCP tools are handled **server-side** by Azure AI Foundry. The SPA never calls the MCP server directly.
 
 ---
 
@@ -162,14 +163,14 @@ The `foundryProjectEndpoint` and `foundryModelName` reference values are also st
 1. cd infra && npm run deploy-agent   (or: cd agent && npm start)
    → provisionRFPAgent()
    → uploads rfp-prerequisites.txt to a Foundry vector store
-   → creates agent version in Foundry with file_search + function tools
+   → creates agent version in Foundry with file_search + MCP procurement tool
    → prints { agentName, agentVersion, vectorStoreId }
 
 2. SPA receives agentName + agentVersion
    → calls buildRfpPrompt(topic, budget) to get the initial user message
-   → creates a Foundry conversation and sends the prompt with the agent reference
-   → handles list_vendors function calls  → forwards to MCP server → returns results
-   → handles get_vendor_risk_score calls → forwards to MCP server → returns results
+   → creates a Foundry conversation via Conversations API
+   → sends the prompt with the agent reference via Responses API
+   → agent calls MCP tools server-side (list_suppliers, get_risk_score, etc.)
    → receives the agent's final JSON text response
 
 3. SPA calls parseRfpOutput(responseText)
@@ -210,10 +211,6 @@ export interface RfpOutput { rfpTopic, budget, prerequisitesChecklist, technical
 export interface ChecklistItem { category, item, priority, completed }
 export interface VendorAssessment { vendorId, name, country, category, riskScore, riskLevel, eligible, categoryMatch, justification }
 export interface TargetedVendor { vendorId, name, country, riskScore, riskLevel, justification }
-
-// Tool definitions (export so the SPA knows which function call names to handle)
-export const LIST_VENDORS_TOOL: FunctionTool
-export const GET_VENDOR_RISK_TOOL: FunctionTool
 
 // Helpers
 export function buildRfpPrompt(rfpTopic: string, rfpBudget: number): string

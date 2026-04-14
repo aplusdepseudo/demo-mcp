@@ -39,7 +39,6 @@ function stripHtml(text: string): string {
 /** Return a copy of an SSE event with all string fields HTML-escaped. */
 function sanitizeSseEvent(event: SseEvent): SseEvent {
   if (event.type === 'status') return { ...event, message: stripHtml(event.message) };
-  if (event.type === 'tool_call') return { ...event, toolName: stripHtml(event.toolName) };
   if (event.type === 'error') return { ...event, message: stripHtml(event.message) };
   return event;
 }
@@ -82,7 +81,6 @@ app.post('/api/generate', async (req, res) => {
 
   try {
     const projectEndpoint = process.env.FOUNDRY_PROJECT_ENDPOINT;
-    const mcpServerUrl = process.env.MCP_SERVER_URL ?? 'http://localhost:3000';
 
     if (!projectEndpoint) {
       res.status(500).json({ error: 'FOUNDRY_PROJECT_ENDPOINT is not configured on the server.' });
@@ -94,7 +92,6 @@ app.post('/api/generate', async (req, res) => {
         projectEndpoint,
         agentName: body.agentName,
         agentVersion: body.agentVersion ?? '1',
-        mcpServerUrl,
       },
       body.rfpTopic,
       body.rfpBudget,

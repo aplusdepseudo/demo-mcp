@@ -18,7 +18,7 @@
 import { ref, watch, nextTick } from 'vue';
 
 export interface LogEntry {
-  type: 'status' | 'tool_call' | 'error';
+  type: 'status' | 'error';
   message: string;
 }
 
@@ -39,7 +39,6 @@ watch(
 );
 
 function iconFor(type: LogEntry['type']): string {
-  if (type === 'tool_call') return '🔧';
   if (type === 'error') return '❌';
   return '✓';
 }
@@ -78,11 +77,6 @@ li {
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
   background: #f8fafc;
-}
-
-li.tool_call {
-  background: #eff6ff;
-  color: #1d4ed8;
 }
 
 li.error {

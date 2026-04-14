@@ -96,8 +96,6 @@ async function handleGenerate(request: GenerateRequest) {
 function handleSseEvent(event: SseEvent) {
   if (event.type === 'status') {
     logs.value.push({ type: 'status', message: event.message });
-  } else if (event.type === 'tool_call') {
-    logs.value.push({ type: 'tool_call', message: `Tool call: ${event.toolName}` });
   } else if (event.type === 'result') {
     output.value = event.output;
     logs.value.push({ type: 'status', message: '✅ RFP documentation generated successfully.' });

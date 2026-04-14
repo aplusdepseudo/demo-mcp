@@ -1,4 +1,4 @@
-// Shared TypeScript types — mirrors the interfaces exported from agent/src/rfpAgent.ts
+// Shared TypeScript types — mirrors the interfaces exported from agent/src/agent.ts
 
 export interface ChecklistItem {
   category: string;
@@ -50,6 +50,5 @@ export interface GenerateRequest {
 // SSE event payloads streamed from the backend
 export type SseEvent =
   | { type: 'status'; message: string }
-  | { type: 'tool_call'; toolName: string }
   | { type: 'result'; output: RfpOutput }
   | { type: 'error'; message: string };
