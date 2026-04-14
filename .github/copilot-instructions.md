@@ -23,14 +23,14 @@ npm start            # Provision the agent in Foundry (tsx)
 npm run build        # TypeScript → build/ (tsc)
 ```
 
-### SPA (Vue 3 + Express backend)
+### SPA (Vue 3 — static frontend)
 
 ```bash
 cd spa
 npm install
-npm run dev          # Vite dev server + Express backend (concurrently)
-npm run build        # Build Vue SPA for production
-npm run start        # Start production Express server
+npm run dev          # Vite dev server (hot reload)
+npm run build        # Build for production → dist/
+npm run preview      # Preview production build
 ```
 
 No test framework is configured.
@@ -45,13 +45,13 @@ This is a three-component monorepo for an RFP (Request for Proposal) documentati
    - `file_search` tool (vector store with RFP prerequisites document)
    - `mcp` tool (native MCP connection to the procurement server — all tool calls handled server-side by Foundry)
 
-3. **SPA** (`spa/`) — Vue 3 frontend + Express backend. The SPA **only displays agent progress** — it never calls MCP tools directly. The backend creates a Foundry conversation, sends the prompt via the Conversations + Responses API, and streams status events to the frontend via SSE.
+3. **SPA** (`spa/`) — Vue 3 static frontend. Authenticates via MSAL (Entra ID), calls the Azure AI Foundry Conversations + Responses REST API directly from the browser. Displays progress and renders the agent's structured JSON response. No backend server.
 
 4. **Infra** (`infra/`) — Azure Bicep templates + deployment scripts.
 
 ### Key design principle
 
-The agent handles all tool calls (MCP procurement tools, file_search) **server-side in Azure AI Foundry**. The SPA is a thin display layer that creates a conversation, waits for the agent response, and renders the results.
+The agent handles all tool calls (MCP procurement tools, file_search) **server-side in Azure AI Foundry**. The SPA is a thin display layer — it authenticates via MSAL, creates a Foundry conversation via REST API, waits for the agent response, and renders the results. No backend server is needed.
 
 ## Domain Layer
 
@@ -64,7 +64,7 @@ The domain API (`mcp/src/api.ts`) provides pure functions that query in-memory `
 - **Zod v3 import path**: Zod is imported as `zod/v3` (not bare `zod`), matching the installed version's export map.
 - **API doc comments**: Each API section in `mcp/src/api.ts` uses a block-comment header with description, inputs, and outputs (written in French).
 - **No session state**: The MCP server is fully stateless — a new MCP server + transport is created per request and torn down on response close.
-- **Environment variables**: `PORT` (server port, default 3000), `WEBSITE_HOSTNAME` (allowed Host headers for DNS rebinding protection, comma-separated).
+- **Environment variables**: MCP server uses `PORT` (default 3000) and `WEBSITE_HOSTNAME` (allowed Host headers). SPA uses `VITE_` prefixed vars for Foundry endpoint and Entra ID config.
 
 ## Git Workflow
 

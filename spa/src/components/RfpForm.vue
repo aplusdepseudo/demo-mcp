@@ -5,19 +5,9 @@
       <label>
         <span>Agent Name</span>
         <input
-          v-model="config.agentName"
+          v-model="agentName"
           type="text"
           placeholder="rfp-agent"
-          :disabled="loading"
-        />
-      </label>
-
-      <label>
-        <span>Agent Version</span>
-        <input
-          v-model="config.agentVersion"
-          type="text"
-          placeholder="1"
           :disabled="loading"
         />
       </label>
@@ -62,8 +52,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue';
-import type { GenerateRequest } from '../types.ts';
+import { ref, computed } from 'vue';
+import type { GenerateRequest } from '../types';
 
 const emit = defineEmits<{
   submit: [request: GenerateRequest];
@@ -73,17 +63,13 @@ const props = defineProps<{
   loading: boolean;
 }>();
 
-const config = reactive({
-  agentName: 'rfp-agent',
-  agentVersion: '1',
-});
-
+const agentName = ref('rfp-agent');
 const rfpTopic = ref('');
 const rfpBudget = ref(500000);
 
 const isValid = computed(
   () =>
-    config.agentName.trim() !== '' &&
+    agentName.value.trim() !== '' &&
     rfpTopic.value.trim() !== '' &&
     rfpBudget.value > 0,
 );
@@ -91,8 +77,7 @@ const isValid = computed(
 function handleSubmit() {
   if (!isValid.value || props.loading) return;
   emit('submit', {
-    agentName: config.agentName.trim(),
-    agentVersion: config.agentVersion.trim(),
+    agentName: agentName.value.trim(),
     rfpTopic: rfpTopic.value.trim(),
     rfpBudget: rfpBudget.value,
   });

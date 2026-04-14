@@ -38,17 +38,10 @@ export interface RfpOutput {
   targetedVendors: TargetedVendor[];
 }
 
-// API request / response shapes
+// Form → App communication
 
 export interface GenerateRequest {
   agentName: string;
-  agentVersion: string;
   rfpTopic: string;
   rfpBudget: number;
 }
-
-// SSE event payloads streamed from the backend
-export type SseEvent =
-  | { type: 'status'; message: string }
-  | { type: 'result'; output: RfpOutput }
-  | { type: 'error'; message: string };

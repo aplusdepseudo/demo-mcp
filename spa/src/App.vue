@@ -33,13 +33,19 @@ import { ref } from 'vue';
 import RfpForm from './components/RfpForm.vue';
 import ProgressLog from './components/ProgressLog.vue';
 import RfpResults from './components/RfpResults.vue';
-import type { GenerateRequest, RfpOutput, SseEvent } from './types.ts';
+import type { GenerateRequest, RfpOutput } from './types';
 import type { LogEntry } from './components/ProgressLog.vue';
+import { getAccessToken } from './services/auth';
+import { FoundryClient } from './services/foundryClient';
 
 const loading = ref(false);
 const logs = ref<LogEntry[]>([]);
 const output = ref<RfpOutput | null>(null);
 const errorMessage = ref<string | null>(null);
+
+function log(type: LogEntry['type'], message: string) {
+  logs.value.push({ type, message });
+}
 
 async function handleGenerate(request: GenerateRequest) {
   loading.value = true;
@@ -48,60 +54,30 @@ async function handleGenerate(request: GenerateRequest) {
   errorMessage.value = null;
 
   try {
-    const response = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(request),
-    });
+    log('status', 'Authenticating with Azure…');
 
-    if (!response.ok || !response.body) {
-      const text = await response.text().catch(() => 'Unknown error');
-      throw new Error(`Server error ${response.status}: ${text}`);
+    const projectEndpoint = import.meta.env.VITE_FOUNDRY_PROJECT_ENDPOINT;
+    if (!projectEndpoint) {
+      throw new Error('VITE_FOUNDRY_PROJECT_ENDPOINT is not configured.');
     }
 
-    // Read the SSE stream from the backend
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    const client = new FoundryClient(projectEndpoint, getAccessToken);
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    const result = await client.runRfpConversation(
+      request.agentName,
+      request.rfpTopic,
+      request.rfpBudget,
+      (message) => log('status', message),
+    );
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() ?? '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const payload = line.slice(6).trim();
-        if (!payload || payload === '[DONE]') continue;
-
-        try {
-          const event = JSON.parse(payload) as SseEvent;
-          handleSseEvent(event);
-        } catch {
-          // ignore parse errors
-        }
-      }
-    }
+    output.value = result;
+    log('status', '✅ RFP documentation generated successfully.');
   } catch (err) {
-    errorMessage.value = err instanceof Error ? err.message : String(err);
-    logs.value.push({ type: 'error', message: errorMessage.value });
+    const message = err instanceof Error ? err.message : String(err);
+    errorMessage.value = message;
+    log('error', message);
   } finally {
     loading.value = false;
-  }
-}
-
-function handleSseEvent(event: SseEvent) {
-  if (event.type === 'status') {
-    logs.value.push({ type: 'status', message: event.message });
-  } else if (event.type === 'result') {
-    output.value = event.output;
-    logs.value.push({ type: 'status', message: '✅ RFP documentation generated successfully.' });
-  } else if (event.type === 'error') {
-    errorMessage.value = event.message;
-    logs.value.push({ type: 'error', message: event.message });
   }
 }
 </script>
