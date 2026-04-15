@@ -5,11 +5,18 @@
   "bin": {
     "mcp-mock": "./build/index.js"
   },
+  "config": {
+    "resourceGroup": "demo-agentic-rg",
+    "resourceWebApp": "demo-agentic-wa"
+  },
   "scripts": {
     "start": "tsx src/index.ts",
+    "start:prod": "node build/index.js",
     "dev": "npx tsx watch src/index.ts",
     "build": "tsc",
-    "inspect": "npx -y @modelcontextprotocol/inspector"
+    "inspect": "npx -y @modelcontextprotocol/inspector",
+    "predeploy": "npm run build",
+    "deploy": "tar -acf deploy.zip build package.json package-lock.json .deployment && az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path deploy.zip --type zip --clean true && del deploy.zip"
   },
   "keywords": [],
   "author": "Nicolas ANTOINE",
