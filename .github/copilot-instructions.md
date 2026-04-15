@@ -10,8 +10,10 @@ All MCP server commands run from the `mcp/` directory:
 cd mcp
 npm run build        # TypeScript → build/ (tsc)
 npm run start        # Run with tsx (no build step needed)
+npm run start:prod   # Run compiled JS (production)
 npm run dev          # Watch mode with auto-reload
 npm run inspect      # Launch MCP Inspector UI
+npm run deploy       # Build, zip & deploy to Azure Web App
 ```
 
 ### Agent (Azure AI Foundry provisioner)
