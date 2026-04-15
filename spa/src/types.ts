@@ -38,10 +38,14 @@ export interface RfpOutput {
   targetedVendors: TargetedVendor[];
 }
 
+export type Currency = 'USD' | 'EUR';
+
 // Form → App communication
 
 export interface GenerateRequest {
   agentName: string;
+  agentVersion: string;
   rfpTopic: string;
   rfpBudget: number;
+  currency: Currency;
 }

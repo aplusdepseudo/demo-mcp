@@ -177,13 +177,13 @@ function downloadJson() {
 h2 {
   font-size: 1rem;
   font-weight: 600;
-  color: #1e3a5f;
+  color: #33475b;
   margin: 0;
 }
 
 h2 em {
   font-style: normal;
-  color: #2563eb;
+  color: #0091ae;
 }
 
 .budget {
@@ -218,12 +218,12 @@ h2 em {
 }
 
 .tab-btn:hover {
-  color: #1e3a5f;
+  color: #33475b;
 }
 
 .tab-btn.active {
-  color: #1e3a5f;
-  border-bottom-color: #2563eb;
+  color: #33475b;
+  border-bottom-color: #ff7a59;
   font-weight: 600;
 }
 
@@ -237,8 +237,8 @@ h2 em {
 }
 
 .tab-btn.active .badge {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #fff1ee;
+  color: #ff5c35;
 }
 
 .tab-panel {
@@ -256,7 +256,7 @@ table {
 }
 
 th {
-  background: #1e3a5f;
+  background: #33475b;
   color: #fff;
   padding: 0.5rem 0.75rem;
   text-align: left;
@@ -306,8 +306,8 @@ tr:nth-child(even) td {
 
 .btn-outline {
   padding: 0.5rem 1.1rem;
-  border: 1.5px solid #1e3a5f;
-  color: #1e3a5f;
+  border: 1.5px solid #33475b;
+  color: #33475b;
   background: transparent;
   border-radius: 6px;
   font-size: 0.9rem;
@@ -317,7 +317,7 @@ tr:nth-child(even) td {
 }
 
 .btn-outline:hover {
-  background: #1e3a5f;
+  background: #33475b;
   color: #fff;
 }
 </style>

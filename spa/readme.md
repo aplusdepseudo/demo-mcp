@@ -70,7 +70,7 @@ spa/
 3. An **Entra ID app registration** configured for SPA authentication:
    - Azure Portal → Entra ID → App registrations → New registration
    - Set a **SPA** redirect URI (e.g. `http://localhost:5173` for development)
-   - Grant API permission: **Cognitive Services User** (`https://cognitiveservices.azure.com/.default`)
+   - Grant API permission: **Azure AI** (`https://ai.azure.com/.default`)
 4. Your Azure identity must have the **Azure AI User** role on the Foundry project resource.
 
 ### 1) Install dependencies
@@ -153,12 +153,12 @@ Uses **MSAL browser** (`@azure/msal-browser`) for Entra ID authentication:
 1. On first click of "Generate", a popup asks the user to sign in with their Azure AD account
 2. Subsequent calls use **silent token acquisition** (cached tokens)
 3. The bearer token is sent in the `Authorization` header of all Foundry REST API calls
-4. Token scope: `https://cognitiveservices.azure.com/.default`
+4. Token scope: `https://ai.azure.com/.default`
 
 ### Required Entra ID configuration
 
 - **App registration** with SPA redirect URI (`http://localhost:5173` for dev)
-- **API permission**: Cognitive Services User
+- **API permission**: Azure AI (`https://ai.azure.com/.default`)
 - The user must have **Azure AI User** role on the Foundry project resource
 
 ---

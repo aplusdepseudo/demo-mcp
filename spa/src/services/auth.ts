@@ -3,8 +3,9 @@ import {
   type AccountInfo,
   type AuthenticationResult,
 } from '@azure/msal-browser';
+import type { TokenCredential, AccessToken, GetTokenOptions } from '@azure/core-auth';
 
-const COGNITIVE_SERVICES_SCOPE = 'https://cognitiveservices.azure.com/.default';
+const FOUNDRY_SCOPE = 'https://ai.azure.com/.default';
 
 let msalInstance: PublicClientApplication | null = null;
 
@@ -36,29 +37,42 @@ async function getInstance(): Promise<PublicClientApplication> {
 }
 
 /**
- * Acquire a bearer token for Azure Cognitive Services.
+ * TokenCredential implementation backed by MSAL browser.
  * Tries silent acquisition first, falls back to interactive popup.
+ * Implements the @azure/core-auth TokenCredential interface so it can be
+ * passed directly to AIProjectClient.
  */
-export async function getAccessToken(): Promise<string> {
-  const msal = await getInstance();
-  const accounts = msal.getAllAccounts();
+export class MsalBrowserCredential implements TokenCredential {
+  async getToken(
+    _scopes: string | string[],
+    _options?: GetTokenOptions,
+  ): Promise<AccessToken | null> {
+    const msal = await getInstance();
+    const accounts = msal.getAllAccounts();
 
-  if (accounts.length > 0) {
-    try {
-      const result: AuthenticationResult = await msal.acquireTokenSilent({
-        scopes: [COGNITIVE_SERVICES_SCOPE],
-        account: accounts[0],
-      });
-      return result.accessToken;
-    } catch {
-      // Silent acquisition failed — fall through to interactive
+    if (accounts.length > 0) {
+      try {
+        const result: AuthenticationResult = await msal.acquireTokenSilent({
+          scopes: [FOUNDRY_SCOPE],
+          account: accounts[0],
+        });
+        return {
+          token: result.accessToken,
+          expiresOnTimestamp: result.expiresOn?.getTime() ?? Date.now() + 3600_000,
+        };
+      } catch {
+        // Silent acquisition failed — fall through to interactive
+      }
     }
-  }
 
-  const result: AuthenticationResult = await msal.acquireTokenPopup({
-    scopes: [COGNITIVE_SERVICES_SCOPE],
-  });
-  return result.accessToken;
+    const result: AuthenticationResult = await msal.acquireTokenPopup({
+      scopes: [FOUNDRY_SCOPE],
+    });
+    return {
+      token: result.accessToken,
+      expiresOnTimestamp: result.expiresOn?.getTime() ?? Date.now() + 3600_000,
+    };
+  }
 }
 
 /** Return the currently signed-in account, or null. */

@@ -59,6 +59,8 @@ resource app 'Microsoft.Web/sites@2025-03-01' = {
     siteConfig: {
       linuxFxVersion: 'NODE|22-lts'
       minTlsVersion: '1.2'
+      alwaysOn: true
+      healthCheckPath: '/'
       appSettings: [
         {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'

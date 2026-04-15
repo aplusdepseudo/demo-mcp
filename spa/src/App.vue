@@ -1,30 +1,65 @@
 <template>
   <div class="app-shell">
-    <header class="app-header">
-      <div class="header-inner">
+    <div class="wizard-card">
+      <!-- Accent bar -->
+      <div class="accent-bar"></div>
+
+      <!-- Header -->
+      <div class="wizard-header">
         <div class="logo">
-          <span class="logo-icon">📋</span>
-          <span class="logo-text">RFP Documentation Generator</span>
+          <ContosoLogo :size="32" />
+          <span class="logo-text">Contoso's RFP Generator</span>
         </div>
-        <span class="tagline">Powered by Azure AI Foundry</span>
       </div>
-    </header>
 
-    <main class="app-main">
-      <RfpForm :loading="loading" @submit="handleGenerate" />
+      <!-- Main content: form or results -->
+      <div v-if="!output" class="wizard-body">
+        <RfpForm :loading="loading" @submit="handleGenerate" />
 
-      <ProgressLog v-if="logs.length > 0" :logs="logs" />
+        <div class="wizard-side">
+          <div class="side-brand">
+            <div class="side-icon">🤖</div>
+            <p class="side-title">Azure AI Foundry Agent</p>
+            <p class="side-desc">
+              Automated RFP documentation generation powered by an AI agent with
+              access to your procurement data via MCP tools.
+            </p>
+          </div>
+          <div class="side-stats">
+            <div class="stat">
+              <span class="stat-value">5</span>
+              <span class="stat-label">Checklist categories</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">MCP</span>
+              <span class="stat-label">Live vendor data</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">AI</span>
+              <span class="stat-label">Risk assessment</span>
+            </div>
+          </div>
+          <p class="side-footer">
+            Prerequisite checks, technical &amp; functional checklists,
+            vendor assessment — all in one pass.
+          </p>
+        </div>
+      </div>
 
-      <div v-if="errorMessage" class="error-banner card">
+      <!-- Progress log (shown during generation) -->
+      <ProgressLog v-if="logs.length > 0 && !output" :logs="logs" />
+
+      <!-- Error -->
+      <div v-if="errorMessage" class="error-banner">
         ❌ {{ errorMessage }}
       </div>
 
-      <RfpResults :output="output" />
-    </main>
-
-    <footer class="app-footer">
-      <span>demo-mcp · Azure AI Foundry RFP Agent</span>
-    </footer>
+      <!-- Results (replaces form once ready) -->
+      <div v-if="output" class="results-wrapper">
+        <button class="back-link" @click="resetView">‹ Back</button>
+        <RfpResults :output="output" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -33,9 +68,10 @@ import { ref } from 'vue';
 import RfpForm from './components/RfpForm.vue';
 import ProgressLog from './components/ProgressLog.vue';
 import RfpResults from './components/RfpResults.vue';
+import ContosoLogo from './components/ContosoLogo.vue';
 import type { GenerateRequest, RfpOutput } from './types';
 import type { LogEntry } from './components/ProgressLog.vue';
-import { getAccessToken } from './services/auth';
+import { MsalBrowserCredential } from './services/auth';
 import { FoundryClient } from './services/foundryClient';
 
 const loading = ref(false);
@@ -45,6 +81,12 @@ const errorMessage = ref<string | null>(null);
 
 function log(type: LogEntry['type'], message: string) {
   logs.value.push({ type, message });
+}
+
+function resetView() {
+  output.value = null;
+  logs.value = [];
+  errorMessage.value = null;
 }
 
 async function handleGenerate(request: GenerateRequest) {
@@ -61,14 +103,17 @@ async function handleGenerate(request: GenerateRequest) {
       throw new Error('VITE_FOUNDRY_PROJECT_ENDPOINT is not configured.');
     }
 
-    const client = new FoundryClient(projectEndpoint, getAccessToken);
+    const credential = new MsalBrowserCredential();
+    const client = new FoundryClient(projectEndpoint, credential);
 
-    const result = await client.runRfpConversation(
-      request.agentName,
-      request.rfpTopic,
-      request.rfpBudget,
-      (message) => log('status', message),
-    );
+    const result = await client.runRfpConversation({
+      agentName: request.agentName,
+      agentVersion: request.agentVersion,
+      rfpTopic: request.rfpTopic,
+      rfpBudget: request.rfpBudget,
+      currency: request.currency,
+      onProgress: (message) => log('status', message),
+    });
 
     output.value = result;
     log('status', '✅ RFP documentation generated successfully.');
@@ -101,39 +146,36 @@ body {
     'Segoe UI',
     Roboto,
     sans-serif;
-  background: #f0f4f8;
-  color: #111827;
+  background: #e8ecf1;
+  color: #33475b;
 }
 
-.card {
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-/* ── Layout ── */
+/* ── Wizard shell ── */
 .app-shell {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
   min-height: 100vh;
+  padding: 3rem 1.5rem;
 }
 
-.app-header {
-  background: #1e3a5f;
-  color: #fff;
-  padding: 0.75rem 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+.wizard-card {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 1060px;
+  overflow: hidden;
+  position: relative;
 }
 
-.header-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.accent-bar {
+  height: 5px;
+  background: #ff7a59;
+}
+
+.wizard-header {
+  padding: 1.5rem 2.5rem 0;
 }
 
 .logo {
@@ -142,45 +184,137 @@ body {
   gap: 0.6rem;
 }
 
-.logo-icon {
-  font-size: 1.4rem;
-}
-
 .logo-text {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
+  color: #33475b;
   letter-spacing: -0.3px;
 }
 
-.tagline {
-  font-size: 0.8rem;
-  opacity: 0.75;
+/* ── Two-column body ── */
+.wizard-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  padding: 2rem 2.5rem 2.5rem;
+  min-height: 420px;
+  align-items: start;
 }
 
-.app-main {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 1.5rem;
-  width: 100%;
+@media (max-width: 760px) {
+  .wizard-body {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+/* ── Side panel (right column) ── */
+.wizard-side {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  flex: 1;
+  gap: 1.5rem;
+  padding-top: 0.5rem;
 }
 
-.app-footer {
+.side-brand {
   text-align: center;
-  padding: 1rem;
-  font-size: 0.78rem;
-  color: #9ca3af;
-  border-top: 1px solid #e5e7eb;
-  background: #fff;
 }
 
+.side-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.side-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #33475b;
+  margin: 0 0 0.35rem;
+}
+
+.side-desc {
+  font-size: 0.85rem;
+  color: #516f90;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.side-stats {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ff7a59;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: #7c98b6;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+}
+
+.side-footer {
+  font-size: 0.8rem;
+  color: #7c98b6;
+  text-align: center;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Error ── */
 .error-banner {
+  margin: 0 2.5rem 1.5rem;
+  padding: 0.85rem 1rem;
   background: #fef2f2;
-  border-color: #fca5a5;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
   color: #b91c1c;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+}
+
+/* ── Results wrapper ── */
+.results-wrapper {
+  padding: 1rem 2.5rem 2.5rem;
+}
+
+.back-link {
+  background: none;
+  border: none;
+  color: #0091ae;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: color 0.15s;
+}
+
+.back-link:hover {
+  color: #007a8a;
+}
+
+/* ── Shared card override for children ── */
+.card {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  border-radius: 0;
 }
 </style>

@@ -1,17 +1,20 @@
-import type { RfpOutput } from '../types';
-
-const API_VERSION = '2025-04-01-preview';
+import { AIProjectClient } from '@azure/ai-projects';
+import type { TokenCredential } from '@azure/core-auth';
+import type { RfpOutput, Currency } from '../types';
 
 export type ProgressCallback = (message: string) => void;
 
 // ── Prompt builder ────────────────────────────────────────────────────────
 
-function buildRfpPrompt(rfpTopic: string, rfpBudget: number): string {
+function buildRfpPrompt(rfpTopic: string, rfpBudget: number, currency: Currency): string {
+  const symbol = currency === 'EUR' ? '€' : '$';
+  const label = currency === 'EUR' ? 'EUR' : 'USD';
+
   return `
 You are preparing an RFP documentation package for the following procurement:
 
   Topic  : ${rfpTopic}
-  Budget : $${rfpBudget.toLocaleString()} USD
+  Budget : ${symbol}${rfpBudget.toLocaleString()} ${label}
 
 Please perform ALL of the following steps IN ORDER:
 
@@ -31,8 +34,10 @@ Please perform ALL of the following steps IN ORDER:
    capabilities the solution must support (modules, workflows, reporting, user roles, etc.).
 
 4. VENDOR SANITY CHECK
-   Use the procurement tools to retrieve all suppliers. For each supplier:
-   - Retrieve their risk assessment profile.
+   You MUST use the MCP procurement tools to retrieve all supplier data. Do NOT invent
+   or assume any supplier information — every vendor detail must come from the MCP tools.
+   For each supplier returned by the tools:
+   - Call the MCP tool to retrieve their risk assessment profile.
    - Evaluate eligibility: a vendor is ELIGIBLE if their risk score < 7.
    - Apply a category sanity check: flag vendors whose category does not match
      the RFP topic as MISMATCHED.
@@ -41,6 +46,10 @@ Please perform ALL of the following steps IN ORDER:
    From the eligible vendors, produce a final shortlist of vendors recommended
    for this RFP. Include: vendor ID, name, country, risk score, risk level,
    and a brief justification for inclusion or exclusion.
+
+IMPORTANT: All vendor and supplier data MUST come from the MCP procurement tools.
+Do NOT generate, hallucinate, or assume any vendor information. If the MCP tools
+return no data, report that no vendor data is available.
 
 Return your complete response as a single valid JSON object with this exact structure:
 {
@@ -82,100 +91,49 @@ function parseRfpOutput(text: string): RfpOutput {
   return JSON.parse(jsonMatch[0]) as RfpOutput;
 }
 
-// ── Foundry REST client ───────────────────────────────────────────────────
-
-interface ConversationResponse {
-  id: string;
-}
-
-interface AgentResponse {
-  output_text?: string;
-}
+// ── Foundry client (Azure AI Projects SDK) ────────────────────────────────
 
 export class FoundryClient {
-  private readonly baseUrl: string;
-  private readonly tokenProvider: () => Promise<string>;
+  private readonly project: AIProjectClient;
 
-  constructor(projectEndpoint: string, tokenProvider: () => Promise<string>) {
-    this.baseUrl = projectEndpoint.replace(/\/+$/, '');
-    this.tokenProvider = tokenProvider;
-  }
-
-  private async request<T>(path: string, method: string, body?: unknown): Promise<T> {
-    const token = await this.tokenProvider();
-    const url = `${this.baseUrl}${path}?api-version=${API_VERSION}`;
-
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`Foundry API error ${response.status}: ${text}`);
-    }
-
-    if (method === 'DELETE') return undefined as T;
-    return (await response.json()) as T;
+  constructor(projectEndpoint: string, credential: TokenCredential) {
+    this.project = new AIProjectClient(projectEndpoint, credential);
   }
 
   /**
-   * Run the full RFP conversation with the provisioned Azure AI Foundry agent.
+   * Run the full RFP workflow with the provisioned Azure AI Foundry agent.
    *
-   * Flow:
-   *  1. Create a conversation with the initial RFP prompt
-   *  2. Generate a response via the agent (all tool calls handled server-side)
-   *  3. Parse the agent's JSON response into RfpOutput
-   *  4. Clean up the conversation (best-effort)
+   * Uses the Conversations + Responses API with an agent_reference so
+   * Foundry dispatches the request to the named agent. All tool calls
+   * (MCP, file_search) are resolved server-side by Foundry.
    */
-  async runRfpConversation(
-    agentName: string,
-    rfpTopic: string,
-    rfpBudget: number,
-    onProgress: ProgressCallback,
-  ): Promise<RfpOutput> {
-    // 1. Create conversation
-    onProgress('Creating conversation…');
-    const prompt = buildRfpPrompt(rfpTopic, rfpBudget);
+  async runRfpConversation(opts: {
+    agentName: string;
+    agentVersion: string;
+    rfpTopic: string;
+    rfpBudget: number;
+    currency: Currency;
+    onProgress: ProgressCallback;
+  }): Promise<RfpOutput> {
+    const { agentName, agentVersion, rfpTopic, rfpBudget, currency, onProgress } = opts;
+    const openAIClient = this.project.getOpenAIClient();
+    const prompt = buildRfpPrompt(rfpTopic, rfpBudget, currency);
 
-    const conversation = await this.request<ConversationResponse>(
-      '/openai/conversations',
-      'POST',
-      { items: [{ type: 'message', role: 'user', content: prompt }] },
-    );
-
-    // 2. Generate agent response (MCP tool calls handled server-side by Foundry)
     onProgress(
-      `Waiting for agent response (${agentName})… This may take a few minutes.`,
+      `Sending request to agent (${agentName} v${agentVersion})… This may take a few minutes.`,
+    );
+    const response = await openAIClient.responses.create(
+      { input: prompt },
+      { body: { agent: { name: agentName, version: agentVersion, type: 'agent_reference' } } },
     );
 
-    const response = await this.request<AgentResponse>(
-      '/openai/responses',
-      'POST',
-      {
-        conversation: conversation.id,
-        agent: { name: agentName, type: 'agent_reference' },
-      },
-    );
-
-    // 3. Parse response
     onProgress('Parsing agent response…');
 
-    if (!response.output_text) {
+    const text = response.output_text;
+    if (!text) {
       throw new Error('Agent returned an empty response.');
     }
 
-    // 4. Cleanup (best-effort)
-    try {
-      await this.request(`/openai/conversations/${conversation.id}`, 'DELETE');
-    } catch {
-      // Not critical
-    }
-
-    return parseRfpOutput(response.output_text);
+    return parseRfpOutput(text);
   }
 }

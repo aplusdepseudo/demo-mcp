@@ -1,6 +1,5 @@
 <template>
-  <section class="progress-log card" v-if="logs.length > 0">
-    <h2>Progress</h2>
+  <section class="progress-log" v-if="logs.length > 0">
     <ul ref="listEl">
       <li
         v-for="(entry, idx) in logs"
@@ -49,13 +48,7 @@ function iconFor(type: LogEntry['type']): string {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-}
-
-h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1e3a5f;
-  margin: 0;
+  padding: 0 2.5rem 1.5rem;
 }
 
 ul {
@@ -74,9 +67,10 @@ li {
   align-items: flex-start;
   gap: 0.5rem;
   font-size: 0.85rem;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.6rem;
   border-radius: 4px;
-  background: #f8fafc;
+  background: #f5f8fa;
+  color: #516f90;
 }
 
 li.error {
