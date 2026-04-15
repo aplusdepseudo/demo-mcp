@@ -70,6 +70,8 @@ The domain API (`mcp/src/api.ts`) provides pure functions that query in-memory `
 
 Before committing, always ask the user for a commit message (title) and description. Do not generate commit messages autonomously.
 
+After completing a task, always ask the user if they want to commit the changes before marking the task as done.
+
 ## Infrastructure
 
 The `infra/` folder contains Azure Bicep templates and its own `infra/package.json` with deployment scripts. Resource names (`resourceGroup`, `resourceWebApp`) are configured in `infra/package.json > config`. Deploy with `cd infra && npm run deploy-infra` (Bicep) or `npm run deploy-app` (web app ZIP deploy).
