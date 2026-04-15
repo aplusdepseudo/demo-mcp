@@ -42,14 +42,20 @@ Please perform ALL of the following steps IN ORDER:
    - Apply a category sanity check: flag vendors whose category does not match
      the RFP topic as MISMATCHED.
 
-5. TARGETED VENDOR LIST
-   From the eligible vendors, produce a final shortlist of vendors recommended
-   for this RFP. Include: vendor ID, name, country, risk score, risk level,
-   and a brief justification for inclusion or exclusion.
+5. RETAINED VENDOR LIST
+   From the eligible vendors, produce a final shortlist of vendors RETAINED for this RFP.
+   Include: vendor ID, name, country, risk score, risk level,
+   and a brief justification for why this vendor was retained.
+
+6. DISCARDED VENDOR LIST
+   List ALL vendors that were NOT retained. For each, include: vendor ID, name, country,
+   risk score, risk level, and a clear reason for disqualification (e.g. high risk score,
+   category mismatch, missing data, etc.).
 
 IMPORTANT: All vendor and supplier data MUST come from the MCP procurement tools.
 Do NOT generate, hallucinate, or assume any vendor information. If the MCP tools
 return no data, report that no vendor data is available.
+Every vendor from the assessment MUST appear in either retainedVendors or discardedVendors.
 
 Return your complete response as a single valid JSON object with this exact structure:
 {
@@ -71,10 +77,16 @@ Return your complete response as a single valid JSON object with this exact stru
       "categoryMatch": true, "justification": "..."
     }
   ],
-  "targetedVendors": [
+  "retainedVendors": [
     {
       "vendorId": "...", "name": "...", "country": "...",
       "riskScore": 0, "riskLevel": "...", "justification": "..."
+    }
+  ],
+  "discardedVendors": [
+    {
+      "vendorId": "...", "name": "...", "country": "...",
+      "riskScore": 0, "riskLevel": "...", "reason": "..."
     }
   ]
 }

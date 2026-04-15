@@ -7,8 +7,9 @@
       <!-- Header -->
       <div class="wizard-header">
         <div class="logo">
-          <ContosoLogo :size="32" />
-          <span class="logo-text">Contoso's RFP Generator</span>
+          <ContosoLogo :size="28" />
+          <span class="logo-sep">|</span>
+          <span class="logo-text">RFP Generator</span>
         </div>
       </div>
 
@@ -18,7 +19,7 @@
 
         <div class="wizard-side">
           <div class="side-brand">
-            <div class="side-icon">🤖</div>
+            <div class="side-icon">📋</div>
             <p class="side-title">Azure AI Foundry Agent</p>
             <p class="side-desc">
               Automated RFP documentation generation powered by an AI agent with
@@ -184,10 +185,16 @@ body {
   gap: 0.6rem;
 }
 
+.logo-sep {
+  color: #cbd6e2;
+  font-weight: 300;
+  font-size: 1.2rem;
+}
+
 .logo-text {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #33475b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #516f90;
   letter-spacing: -0.3px;
 }
 

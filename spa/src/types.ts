@@ -28,6 +28,15 @@ export interface TargetedVendor {
   justification: string;
 }
 
+export interface DiscardedVendor {
+  vendorId: string;
+  name: string;
+  country: string;
+  riskScore: number;
+  riskLevel: string;
+  reason: string;
+}
+
 export interface RfpOutput {
   rfpTopic: string;
   budget: number;
@@ -35,7 +44,8 @@ export interface RfpOutput {
   technicalChecklist: ChecklistItem[];
   functionalChecklist: ChecklistItem[];
   vendorAssessment: VendorAssessment[];
-  targetedVendors: TargetedVendor[];
+  retainedVendors: TargetedVendor[];
+  discardedVendors: DiscardedVendor[];
 }
 
 export type Currency = 'USD' | 'EUR';

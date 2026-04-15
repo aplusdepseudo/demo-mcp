@@ -77,8 +77,8 @@
       </div>
     </div>
 
-    <!-- Targeted Vendors -->
-    <div v-if="activeTab === 'targeted'" class="tab-panel">
+    <!-- Retained Vendors -->
+    <div v-if="activeTab === 'retained'" class="tab-panel">
       <div class="table-wrapper">
         <table>
           <thead>
@@ -92,7 +92,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="v in output.targetedVendors" :key="v.vendorId">
+            <tr v-for="v in output.retainedVendors" :key="v.vendorId">
               <td class="mono">{{ v.vendorId }}</td>
               <td>{{ v.name }}</td>
               <td>{{ v.country }}</td>
@@ -107,7 +107,41 @@
       </div>
     </div>
 
+    <!-- Discarded Vendors -->
+    <div v-if="activeTab === 'discarded'" class="tab-panel">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Country</th>
+              <th>Risk Score</th>
+              <th>Risk Level</th>
+              <th>Reason for Disqualification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="v in output.discardedVendors" :key="v.vendorId" class="discarded-row">
+              <td class="mono">{{ v.vendorId }}</td>
+              <td>{{ v.name }}</td>
+              <td>{{ v.country }}</td>
+              <td class="center">{{ v.riskScore }}</td>
+              <td class="center">
+                <RiskBadge :level="v.riskLevel" />
+              </td>
+              <td class="small">{{ v.reason }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="download-row">
+      <button class="btn-primary-dl" @click="downloadExcel" :disabled="exporting">
+        <span v-if="exporting">⏳ Generating…</span>
+        <span v-else>📦 Export Excel Package</span>
+      </button>
       <button class="btn-outline" @click="downloadJson">⬇ Download JSON</button>
     </div>
   </section>
@@ -118,17 +152,21 @@ import { ref, computed } from 'vue';
 import type { RfpOutput } from '../types.ts';
 import ChecklistTable from './ChecklistTable.vue';
 import RiskBadge from './RiskBadge.vue';
+import { downloadExcelReport } from '../services/excelExport';
 
 const props = defineProps<{
   output: RfpOutput | null;
 }>();
+
+const exporting = ref(false);
 
 const tabs = [
   { id: 'prerequisites', label: 'Prerequisites' },
   { id: 'technical', label: 'Technical' },
   { id: 'functional', label: 'Functional' },
   { id: 'vendors', label: 'Vendor Assessment' },
-  { id: 'targeted', label: 'Targeted Vendors' },
+  { id: 'retained', label: '✓ Retained' },
+  { id: 'discarded', label: '✗ Discarded' },
 ] as const;
 
 type TabId = (typeof tabs)[number]['id'];
@@ -142,9 +180,20 @@ function tabCount(id: TabId): number {
     technical: props.output.technicalChecklist?.length ?? 0,
     functional: props.output.functionalChecklist?.length ?? 0,
     vendors: props.output.vendorAssessment?.length ?? 0,
-    targeted: props.output.targetedVendors?.length ?? 0,
+    retained: props.output.retainedVendors?.length ?? 0,
+    discarded: props.output.discardedVendors?.length ?? 0,
   };
   return map[id];
+}
+
+async function downloadExcel() {
+  if (!props.output) return;
+  exporting.value = true;
+  try {
+    await downloadExcelReport(props.output);
+  } finally {
+    exporting.value = false;
+  }
 }
 
 function downloadJson() {
@@ -298,10 +347,40 @@ tr:nth-child(even) td {
   font-weight: 700;
 }
 
+.discarded-row td {
+  color: #6b7280;
+}
+
+.discarded-row td:first-child {
+  border-left: 3px solid #fca5a5;
+}
+
 .download-row {
   display: flex;
   justify-content: flex-end;
+  gap: 0.75rem;
   padding-top: 0.5rem;
+}
+
+.btn-primary-dl {
+  padding: 0.55rem 1.2rem;
+  background: #ff7a59;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary-dl:hover:not(:disabled) {
+  background: #ff5c35;
+}
+
+.btn-primary-dl:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-outline {
