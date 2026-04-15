@@ -96,11 +96,29 @@ Return your complete response as a single valid JSON object with this exact stru
 // ── Response parser ───────────────────────────────────────────────────────
 
 function parseRfpOutput(text: string): RfpOutput {
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
+  // Strip markdown code fences if present (```json ... ```)
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+  const raw = fenced ? fenced[1].trim() : text;
+
+  // Find the outermost JSON object by matching balanced braces
+  const start = raw.indexOf('{');
+  if (start === -1) {
     throw new Error('Agent response does not contain a JSON block.');
   }
-  return JSON.parse(jsonMatch[0]) as RfpOutput;
+
+  let depth = 0;
+  let end = -1;
+  for (let i = start; i < raw.length; i++) {
+    if (raw[i] === '{') depth++;
+    else if (raw[i] === '}') depth--;
+    if (depth === 0) { end = i; break; }
+  }
+
+  if (end === -1) {
+    throw new Error('Agent response contains malformed JSON (unbalanced braces).');
+  }
+
+  return JSON.parse(raw.slice(start, end + 1)) as RfpOutput;
 }
 
 // ── Foundry client (Azure AI Projects SDK) ────────────────────────────────

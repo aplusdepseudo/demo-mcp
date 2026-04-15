@@ -16,7 +16,7 @@
     "build": "tsc",
     "inspect": "npx -y @modelcontextprotocol/inspector",
     "predeploy": "npm run build",
-    "deploy": "tar -acf deploy.zip build package.json package-lock.json .deployment && az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path deploy.zip --type zip --clean true && del deploy.zip"
+    "deploy": "tar -acf deploy.zip build package.json package-lock.json .deployment && az webapp deploy --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --src-path deploy.zip --type zip --clean true && az webapp config set --name %npm_package_config_resourceWebApp% --resource-group %npm_package_config_resourceGroup% --startup-file \"node build/index.js\" && del deploy.zip"
   },
   "keywords": [],
   "author": "Nicolas ANTOINE",
