@@ -1,361 +1,160 @@
-# 🚀 MCP Mock Demo Server
+# 📄 RFP Documentation Agent — Demo
 
-A lightweight **Node.js + TypeScript** demo server that showcases a simple implementation of an **MCP (Model Context Protocol) server**.
+A monorepo that demonstrates **automated RFP (Request for Proposal) documentation generation** using Azure AI Foundry, MCP (Model Context Protocol), and a Vue.js frontend.
 
-This project is designed to be easy to read, run, and extend for learning/demo purposes. ✨
+An AI agent analyses mock procurement data (suppliers, contracts, invoices, risk scores) through MCP tools and an enterprise knowledge base, then produces structured checklists and vendor assessments — all rendered in a browser-based UI.
 
 ## 🙏 Acknowledgment
 
-Thanks to Lucas for the original repository that is the base we used for another demo:
+Thanks to Lucas for the original MCP server repository that served as a starting point:
 
 - https://github.com/lzetea/ariba-mock
 
-## 🎯 What this project demonstrates
+---
 
-- 🧩 A minimal MCP server using `@modelcontextprotocol/sdk`
-- 🌐 Streamable HTTP MCP endpoint at `/mcp`
-- ✅ Health check endpoint at `/`
-- 🛠️ A complete mock procurement toolset (suppliers, POs, invoices, contracts, RFPs, risk)
+## 🏗️ Architecture Overview
 
-## 🧱 Tech Stack
-
-- Node.js
-- TypeScript
-- Express
-- MCP SDK (`@modelcontextprotocol/sdk`)
-- Zod
-
-## ⚡ Getting Started
-
-### 1) Install dependencies
-
-```bash
-cd mcp
-npm install
+```
+┌─────────────┐        ┌───────────────────────────────────────────┐
+│   Browser   │  REST  │           Azure AI Foundry                │
+│   (SPA)     │───────▶│  ┌─────────────────────────────────────┐  │
+│  Vue.js 3   │        │  │          RFP Agent                  │  │
+│  MSAL auth  │        │  │  file_search (RAG) + MCP tools      │  │
+└─────────────┘        │  └──────────────┬──────────────────────┘  │
+                       │                 │ server-side tool calls   │
+                       │  ┌──────────────▼──────────────────────┐  │
+                       │  │       MCP Server (App Service)      │  │
+                       │  │  Mock procurement data over MCP     │  │
+                       │  └─────────────────────────────────────┘  │
+                       └───────────────────────────────────────────┘
 ```
 
-### 2) Run in development
+**Key design principle:** The agent handles all tool calls (MCP procurement tools, file_search) **server-side in Azure AI Foundry**. The SPA is a thin display layer — it authenticates via MSAL, creates a Foundry conversation via REST API, waits for the agent response, and renders the results.
 
-```bash
-npm run start
-```
+---
 
-### 3) Watch mode (auto-reload)
+## 📦 Components
 
-```bash
-npm run dev
-```
+| Directory | Component | Description |
+|-----------|-----------|-------------|
+| [`mcp/`](mcp/) | **MCP Server** | Stateless Node.js server exposing mock procurement data (suppliers, POs, invoices, contracts, RFPs, risk scores) as MCP tools over Streamable HTTP |
+| [`agent/`](agent/) | **Agent Provisioner** | TypeScript CLI that provisions the RFP agent in Azure AI Foundry with file_search (RAG) and MCP tool connections |
+| [`spa/`](spa/) | **Frontend SPA** | Vue.js 3 static frontend — authenticates via MSAL, drives the Foundry conversation, and renders structured results |
+| [`infra/`](infra/) | **Infrastructure** | Azure Bicep templates to provision AI Foundry, App Service, Cosmos DB, AI Search, Storage, and private networking |
 
-### 4) Build for production
+---
 
-```bash
-npm run build
-```
-
-## 🔌 Endpoints
-
-- `GET /` → returns server status
-- `POST /mcp` → MCP requests (streamable HTTP transport)
-
-## 🕵️ Inspect & Test with MCP Inspector
-
-Use the MCP Inspector from the MCP npm package to validate your server and try tools interactively.
-
-### 1) Start the server
-
-```bash
-npm run start
-```
-
-### 2) Launch MCP Inspector
-
-```bash
-npx -y @modelcontextprotocol/inspector
-```
-
-### 3) Connect to your server
-
-- In the Inspector UI, choose **Streamable HTTP** transport
-- Set server URL to: `http://localhost:3000/mcp`
-- Connect, then initialize the session
-
-### 4) Test a tool
-
-- Open the tools list and select a tool like `list_suppliers` or `get_dashboard_summary`
-- (Optional) provide tool inputs (for example `status`, `category`, `supplier_id`)
-- Run the tool and inspect the JSON result
-
-💡 If you run on a different port, update the URL accordingly (for example `http://localhost:4000/mcp`).
-
-## 🧪 Available MCP Tools
-
-- `get_dashboard_summary`
-- `list_suppliers`, `get_supplier`
-- `list_purchase_orders`, `get_purchase_order`
-- `list_requisitions`, `get_requisition`
-- `list_invoices`, `get_invoice`
-- `list_contracts`, `get_contract`
-- `list_proposals`, `get_proposal`
-- `list_rfps`, `get_rfp`
-- `get_risk_score`
-
-## 🔎 API And MCP Server
-
-The project has two layers:
-
-1. A **domain API layer** in `mcp/src/api.ts` that returns mock business data and applies filtering logic.
-2. An **MCP layer** in `mcp/src/mcp.ts` that exposes this domain logic as MCP tools with validated input schemas (`zod`).
-
-### Domain API (`mcp/src/api.ts`)
-
-The domain API provides grouped functions for procurement entities:
-
-- Dashboard summary
-- Suppliers
-- Purchase orders
-- Requisitions
-- Invoices
-- Contracts
-- Proposals
-- RFPs
-- Risk scoring
-
-Each `get*` function returns either:
-
-- A typed object/list, or
-- A standardized not-found payload (`{ error: "... not found" }`) for lookup-by-id methods.
-
-### MCP Server (`mcp/src/mcp.ts` + `mcp/src/server.ts`)
-
-`mcp/src/mcp.ts` registers tools in the naming format `action_category` (`get_*`, `list_*`) and maps each tool to a domain API function.
-
-`mcp/src/server.ts` exposes:
-
-- `GET /` for status
-- `/mcp` for Streamable HTTP MCP requests
-
-Notes about transport behavior:
-
-- `POST /mcp` is used for MCP requests
-- `GET /mcp` and `DELETE /mcp` return `405` in this stateless setup
-
-## 📂 Project Structure
-
-```text
-mcp/
-  src/
-    api.ts
-    mcp.ts
-    server.ts
-    index.ts
-  build/
-    ...compiled js
-```
-
-## 💡 Notes
-
-This is a **demo/mock implementation** intended for experimentation and learning. Feel free to adapt it as a starting point for your own MCP integrations. 🙌
-
-## ☁️ Deploy to Azure Web App
-
-This project can be deployed to an **Azure Web App (Node.js)** with minimal configuration.
+## ⚡ Quick Start
 
 ### Prerequisites
 
-- An Azure subscription
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed
-- A Linux **App Service Plan** (B1 or higher recommended)
+- **Node.js 18+**
+- An [Azure subscription](https://azure.microsoft.com/free/)
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed and authenticated (`az login`)
 
-### 1) Create the Azure Web App
-
-```bash
-az group create --name <resource-group> --location <region>
-az appservice plan create --name <plan-name> --resource-group <resource-group> --sku B1 --is-linux
-az webapp create --name <app-name> --resource-group <resource-group> --plan <plan-name> --runtime "NODE:22-lts"
-```
-
-### 2) Configure app settings
-
-Azure Web App automatically sets the `PORT` environment variable — the server already picks it up.
-
-The MCP SDK includes DNS rebinding protection that validates the `Host` header. On Azure, the incoming host is your `*.azurewebsites.net` domain. The server reads `WEBSITE_HOSTNAME` (automatically set by Azure) to allow it:
-
-```bash
-# WEBSITE_HOSTNAME is set automatically by Azure — no manual action needed.
-```
-
-If you use a custom domain, add it via the `WEBSITE_HOSTNAME` override or adjust `ALLOWED_HOSTS` accordingly.
-
-### 3) Build and deploy
-
-Before deploying with Azure CLI, make sure your current public IP is allowed in the Web App access restrictions:
-
-- Azure Portal -> Web App -> Networking -> Access restrictions
-- Add an allow rule for your public IP on both the main site and the SCM/Kudu site
-
-**Option A — Deploy with Azure CLI (ZIP deploy):**
-
-```bash
-cd mcp
-npm install
-npm run build
-mkdir -p package
-tar -cavf ./package/build.zip -C ./build/ *
-az webapp deploy --name <app-name> --resource-group <resource-group> --src-path ./package/build.zip --type zip
-```
-
-**Option B — Use the existing npm scripts from `infra/package.json`:**
+### 1) Deploy infrastructure
 
 ```bash
 cd infra
-# Optional: update values in package.json > config
-# - resourceGroup
-# - resourceWebApp
-
-npm run deploy-app
-```
-
-`deploy-app` runs `predeploy-app` automatically, which executes:
-
-- `npm run --prefix ../mcp build` (builds the MCP server)
-- `npm run package-app` (creates the ZIP archive)
-- then `az webapp deploy ... --src-path ../mcp/package/build.zip --type zip`
-
-**Option B — Deploy via GitHub Actions:**
-
-Set up continuous deployment from your repository in the Azure Portal under **Deployment Center**, or use the Azure CLI:
-
-```bash
-az webapp deployment source config --name <app-name> --resource-group <resource-group> --repo-url <github-repo-url> --branch main
-```
-
-Azure's Oryx build system will automatically run `npm install` and `npm run build` during deployment.
-
-### 4) Verify the deployment
-
-```bash
-curl https://<app-name>.azurewebsites.net/
-# Expected: {"status":"up","message":"Demo MCP server running"}
-```
-
-### 5) Connect an MCP client
-
-Point your MCP client to:
-
-```
-https://<app-name>.azurewebsites.net/mcp
-```
-
-### Key configuration notes
-
-| Setting | Description |
-|---|---|
-| `PORT` | Set automatically by Azure; the server binds to it |
-| `WEBSITE_HOSTNAME` | Set automatically by Azure; used for Host header validation |
-| `SCM_DO_BUILD_DURING_DEPLOYMENT` | Set to `true` if you want Oryx to build on deploy |
-
-## 🏗️ Deploy Infrastructure with Bicep
-
-The `infra/` folder contains **Bicep templates** to provision an Azure AI Foundry instance with a default project and network injection for agent scenarios. Model deployments are managed separately through the Azure AI Foundry portal or CLI once the infrastructure is in place.
-
-Use this button to deploy the template directly from GitHub.
-
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Faplusdepseudo%2Fdemo-mcp%2Fmain%2Finfra%2Fmain.json)
-
-### Prerequisites
-
-- An Azure subscription
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) installed (v2.61+)
-- An existing **Subnet** for network injection
-
-### Resources deployed
-
-| Resource | Description |
-|---|---|
-| **AI Foundry** | Cognitive Services account (kind `AIServices`) with system-assigned identity and network injection |
-| **AI Foundry Project** | Default project (child resource) created with the Foundry instance |
-| **Storage Account** | Blob storage used by project connections/capability host |
-| **AI Search** | Search service used for vector store connections |
-| **Cosmos DB** | Thread storage backend via project connection |
-| **Private Endpoints + Private DNS** | Private connectivity and DNS zones for Foundry, Storage, Search, and Cosmos DB |
-| **Project Connections + Capability Host** | Foundry project connections and `Agents` capability host wiring |
-
-### 1) Edit the parameters file
-
-Open `infra/main.bicepparam` and replace the placeholder values with your own:
-
-```bicep
-using 'main.bicep'
-
-param prefix = 'myapp'                    // Prefix for all resource names
-param location = 'norwayeast'
-param agentSubnetId = '/subscriptions/<subscription-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>'
-param peVNETName = '<existing-vnet-name>'
-param peSubnetName = '<existing-private-endpoint-subnet-name>'
-param webAppName = 'myapp-wa'
-
-param tags = {
-  environment: 'dev'
-  project: 'mcp-demo'
-}
-```
-
-### 2) Create a resource group (if needed)
-
-```bash
-az group create --name <resource-group> --location <region>
-```
-
-### 3) Deploy with the parameters file
-
-```bash
-az deployment group create \
-  --resource-group <resource-group> \
-  --template-file infra/main.bicep \
-  --parameters infra/main.bicepparam
-```
-
-### 3b) Or use the existing npm script from `infra/package.json`
-
-```bash
-cd infra
-# Optional: update value in package.json > config.resourceGroup
+# Edit main.bicepparam with your values (prefix, subnet IDs, etc.)
 npm run deploy-infra
 ```
 
-`deploy-infra` executes the same Azure CLI deployment command against:
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Faplusdepseudo%2Fdemo-mcp%2Fmain%2Finfra%2Fmain.json)
 
-- `main.bicep`
-- `main.bicepparam`
-
-### 4) Or deploy with inline parameters
-
-You can also pass parameters directly on the command line:
+### 2) Deploy the MCP server
 
 ```bash
-az deployment group create \
-  --resource-group <resource-group> \
-  --template-file infra/main.bicep \
-  --parameters \
-    prefix=myapp \
-    location=norwayeast \
-    agentSubnetId='/subscriptions/<sub-id>/resourceGroups/<rg>/providers/Microsoft.Network/virtualNetworks/<vnet>/subnets/<subnet-agent>' \
-    peVNETName='<existing-vnet-name>' \
-    peSubnetName='<existing-private-endpoint-subnet-name>' \
-    webAppName='myapp-wa'
+cd infra
+npm run deploy-app      # Builds mcp/, packages, and deploys to Azure App Service
 ```
 
-### 5) Validate before deploying (dry-run)
-
-Run a **what-if** to preview changes without actually deploying:
+### 3) Provision the agent
 
 ```bash
-az deployment group what-if \
-  --resource-group <resource-group> \
-  --template-file infra/main.bicep \
-  --parameters infra/main.bicepparam
+cd agent
+cp .env.example .env    # Set FOUNDRY_PROJECT_ENDPOINT, FOUNDRY_MODEL_NAME, MCP_SERVER_URL
+npm install && npm start
 ```
 
-### 6) Deploy an agent
+### 4) Run the SPA
 
-Once the infrastructure is provisioned, create an agent from the Microsoft Foundry portal and connect it to the MCP tool. You can they query your tool fully using private network connectivity between your agent and the MPC server.
+```bash
+cd spa
+cp .env.example .env    # Set VITE_FOUNDRY_PROJECT_ENDPOINT, VITE_ENTRA_CLIENT_ID, VITE_ENTRA_TENANT_ID
+npm install && npm run dev
+```
+
+Open **http://localhost:5173** — enter an RFP topic, budget, and agent name, then click **Generate**.
+
+---
+
+## 🔄 End-to-End Flow
+
+```
+1. Infrastructure deployed (Bicep)  →  AI Foundry + App Service + networking
+2. MCP server deployed              →  Procurement tools available at /mcp
+3. Agent provisioned                →  Agent created in Foundry with tools
+4. User opens SPA                   →  Authenticates via MSAL (Entra ID)
+5. User submits RFP topic + budget  →  SPA sends prompt to Foundry agent
+6. Agent calls tools server-side    →  file_search (RAG) + MCP procurement tools
+7. Agent returns structured JSON    →  SPA renders checklists + vendor tables
+```
+
+---
+
+## 🧱 Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| MCP Server | Node.js, Express, TypeScript, MCP SDK, Zod |
+| Agent | TypeScript, Azure AI Foundry SDK (`@azure/ai-projects`), ExcelJS |
+| Frontend | Vue.js 3, Vite, MSAL Browser |
+| Infrastructure | Azure Bicep, AI Foundry, App Service, Cosmos DB, AI Search |
+| Authentication | Entra ID (MSAL) + `DefaultAzureCredential` |
+
+---
+
+## 📂 Project Structure
+
+```
+├── mcp/                    MCP procurement server
+│   └── src/
+│       ├── api.ts          Mock data & domain logic
+│       ├── mcp.ts          MCP tool registration
+│       ├── server.ts       Express HTTP server
+│       └── index.ts        Entry point
+├── agent/                  Foundry agent provisioner
+│   ├── src/
+│   │   ├── agent.ts        Provision/deprovision, prompt builder, report generation
+│   │   └── index.ts        CLI entry point
+│   └── assets/
+│       └── rfp-prerequisites.txt
+├── spa/                    Vue.js frontend
+│   └── src/
+│       ├── App.vue         Root component (conversation orchestration)
+│       ├── services/       Auth (MSAL) + Foundry REST client
+│       └── components/     Form, progress log, results tabs
+└── infra/                  Azure Bicep infrastructure
+    ├── main.bicep          Orchestrator module
+    ├── foundry.bicep       AI Foundry + networking
+    ├── webapp.bicep        App Service
+    └── main.bicepparam     Parameter values
+```
+
+---
+
+## 📖 Component Documentation
+
+Each component has its own README with detailed setup, configuration, and API documentation:
+
+- [**MCP Server** → `mcp/README.md`](mcp/README.md)
+- [**Agent Provisioner** → `agent/readme.md`](agent/readme.md)
+- [**Frontend SPA** → `spa/readme.md`](spa/readme.md)
+- [**Infrastructure** → `infra/README.md`](infra/README.md)
+
+---
+
+## 💡 Notes
+
+This is a **demo implementation** intended for experimentation and learning. The procurement data is entirely mock/synthetic. Feel free to adapt it as a starting point for your own MCP + AI Foundry integrations. 🙌
