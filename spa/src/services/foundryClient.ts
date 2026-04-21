@@ -6,15 +6,18 @@ export type ProgressCallback = (message: string) => void;
 
 // ── Prompt builder ────────────────────────────────────────────────────────
 
-function buildRfpPrompt(rfpTopic: string, rfpBudget: number, currency: Currency): string {
+function buildRfpPrompt(rfpTopic: string, rfpBudget: number, currency: Currency, vendorCategories: string[]): string {
   const symbol = currency === 'EUR' ? '€' : '$';
   const label = currency === 'EUR' ? 'EUR' : 'USD';
+  const categoriesList = vendorCategories.map((c) => `  - ${c}`).join('\n');
 
   return `
 You are preparing an RFP documentation package for the following procurement:
 
   Topic  : ${rfpTopic}
   Budget : ${symbol}${rfpBudget.toLocaleString()} ${label}
+  Vendor Categories:
+${categoriesList}
 
 Please perform ALL of the following steps IN ORDER:
 
@@ -36,11 +39,12 @@ Please perform ALL of the following steps IN ORDER:
 4. VENDOR SANITY CHECK
    You MUST use the MCP procurement tools to retrieve all supplier data. Do NOT invent
    or assume any supplier information — every vendor detail must come from the MCP tools.
-   For each supplier returned by the tools:
+   Only consider vendors whose category matches one of the selected vendor categories listed above.
+   For each matching supplier returned by the tools:
    - Call the MCP tool to retrieve their risk assessment profile.
    - Evaluate eligibility: a vendor is ELIGIBLE if their risk score < 7.
    - Apply a category sanity check: flag vendors whose category does not match
-     the RFP topic as MISMATCHED.
+     any of the selected vendor categories as MISMATCHED.
 
 5. RETAINED VENDOR LIST
    From the eligible vendors, produce a final shortlist of vendors RETAINED for this RFP.
@@ -143,11 +147,12 @@ export class FoundryClient {
     rfpTopic: string;
     rfpBudget: number;
     currency: Currency;
+    vendorCategories: string[];
     onProgress: ProgressCallback;
   }): Promise<RfpOutput> {
-    const { agentName, agentVersion, rfpTopic, rfpBudget, currency, onProgress } = opts;
+    const { agentName, agentVersion, rfpTopic, rfpBudget, currency, vendorCategories, onProgress } = opts;
     const openAIClient = this.project.getOpenAIClient();
-    const prompt = buildRfpPrompt(rfpTopic, rfpBudget, currency);
+    const prompt = buildRfpPrompt(rfpTopic, rfpBudget, currency, vendorCategories);
 
     onProgress(
       `Sending request to agent (${agentName} v${agentVersion})… This may take a few minutes.`,

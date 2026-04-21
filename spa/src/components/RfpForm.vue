@@ -72,6 +72,27 @@
             </select>
           </div>
         </label>
+
+        <div class="field">
+          <span class="field-label">Vendor Categories</span>
+          <div class="multiselect-wrap">
+            <label
+              v-for="cat in VENDOR_CATEGORIES"
+              :key="cat"
+              class="chip"
+              :class="{ selected: selectedCategories.has(cat), disabled: loading }"
+            >
+              <input
+                type="checkbox"
+                :value="cat"
+                :checked="selectedCategories.has(cat)"
+                :disabled="loading"
+                @change="toggleCategory(cat)"
+              />
+              <span class="chip-label">{{ cat }}</span>
+            </label>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -87,10 +108,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, reactive } from 'vue';
 import type { GenerateRequest, Currency } from '../types';
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 90; // 90 days
+
+const VENDOR_CATEGORIES = [
+  'ERP Software',
+  'CRM Software',
+  'Cybersecurity Software',
+  'Cloud Infrastructure',
+  'Data Analytics & BI',
+  'ITSM / IT Service Management',
+  'HR & Payroll Software',
+  'Supply Chain Management',
+  'Legacy Software',
+] as const;
 
 function setCookie(name: string, value: string): void {
   document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};path=/;max-age=${COOKIE_MAX_AGE};SameSite=Lax`;
@@ -116,6 +149,16 @@ const agentVersion = ref('1');
 const rfpTopic = ref('');
 const rfpBudget = ref(500000);
 const currency = ref<Currency>('EUR');
+const selectedCategories = reactive(new Set<string>());
+
+function toggleCategory(cat: string) {
+  if (selectedCategories.has(cat)) {
+    selectedCategories.delete(cat);
+  } else {
+    selectedCategories.add(cat);
+  }
+  setCookie('rfp_categories', JSON.stringify([...selectedCategories]));
+}
 
 // Restore saved values on mount
 onMounted(() => {
@@ -126,6 +169,13 @@ onMounted(() => {
   if (savedBudget) rfpBudget.value = Number(savedBudget) || rfpBudget.value;
   const savedCurrency = getCookie('rfp_currency');
   if (savedCurrency === 'USD' || savedCurrency === 'EUR') currency.value = savedCurrency;
+  const savedCategories = getCookie('rfp_categories');
+  if (savedCategories) {
+    try {
+      const parsed = JSON.parse(savedCategories);
+      if (Array.isArray(parsed)) parsed.forEach((c: string) => selectedCategories.add(c));
+    } catch { /* ignore */ }
+  }
 });
 
 // Persist on change
@@ -140,7 +190,8 @@ const isValid = computed(
     agentName.value.trim() !== '' &&
     agentVersion.value.trim() !== '' &&
     rfpTopic.value.trim() !== '' &&
-    rfpBudget.value > 0,
+    rfpBudget.value > 0 &&
+    selectedCategories.size > 0,
 );
 
 function handleSubmit() {
@@ -151,6 +202,7 @@ function handleSubmit() {
     rfpTopic: rfpTopic.value.trim(),
     rfpBudget: rfpBudget.value,
     currency: currency.value,
+    vendorCategories: [...selectedCategories],
   });
 }
 </script>
@@ -284,6 +336,49 @@ select:disabled {
   background: transparent;
   cursor: pointer;
   font-weight: 600;
+}
+
+/* ── Multiselect chips ── */
+.multiselect-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border: 1.5px solid #cbd6e2;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: #516f90;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.chip input[type='checkbox'] {
+  display: none;
+}
+
+.chip:hover:not(.disabled) {
+  border-color: #0091ae;
+  color: #0091ae;
+}
+
+.chip.selected {
+  background: #e5f5f8;
+  border-color: #0091ae;
+  color: #0091ae;
+  font-weight: 600;
+}
+
+.chip.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ── CTA button ── */

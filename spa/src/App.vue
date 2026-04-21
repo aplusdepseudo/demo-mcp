@@ -113,6 +113,7 @@ async function handleGenerate(request: GenerateRequest) {
       rfpTopic: request.rfpTopic,
       rfpBudget: request.rfpBudget,
       currency: request.currency,
+      vendorCategories: request.vendorCategories,
       onProgress: (message) => log('status', message),
     });
 

@@ -58,4 +58,5 @@ export interface GenerateRequest {
   rfpTopic: string;
   rfpBudget: number;
   currency: Currency;
+  vendorCategories: string[];
 }
