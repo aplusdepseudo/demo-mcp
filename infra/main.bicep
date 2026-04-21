@@ -18,6 +18,12 @@ param peSubnetName string
 @description('Name for the MCP Web App. Must be globally unique in Azure App Service.')
 param webAppName string = '${prefix}-wa'
 
+@description('Name for the Static Web App (SPA). Must be globally unique.')
+param staticWebAppName string = '${prefix}-swa'
+
+@description('Azure region for the Static Web App.')
+param staticWebAppLocation string = 'westeurope'
+
 @description('Tags to apply to all resources.')
 param tags object = {}
 
@@ -37,6 +43,8 @@ module wa './webapp.bicep' = {
     prefix: prefix
     location: location
     webAppName: webAppName
+    staticWebAppName: staticWebAppName
+    staticWebAppLocation: staticWebAppLocation
     peVNETName: peVNETName
     peSubnetName: peSubnetName
     tags: tags

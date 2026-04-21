@@ -6,7 +6,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "9841780495733271877"
+      "templateHash": "1121726697399469275"
     }
   },
   "parameters": {
@@ -46,6 +46,20 @@
       "defaultValue": "[format('{0}-wa', parameters('prefix'))]",
       "metadata": {
         "description": "Name for the MCP Web App. Must be globally unique in Azure App Service."
+      }
+    },
+    "staticWebAppName": {
+      "type": "string",
+      "defaultValue": "[format('{0}-swa', parameters('prefix'))]",
+      "metadata": {
+        "description": "Name for the Static Web App (SPA). Must be globally unique."
+      }
+    },
+    "staticWebAppLocation": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": {
+        "description": "Azure region for the Static Web App."
       }
     },
     "tags": {
@@ -724,6 +738,12 @@
           "webAppName": {
             "value": "[parameters('webAppName')]"
           },
+          "staticWebAppName": {
+            "value": "[parameters('staticWebAppName')]"
+          },
+          "staticWebAppLocation": {
+            "value": "[parameters('staticWebAppLocation')]"
+          },
           "peVNETName": {
             "value": "[parameters('peVNETName')]"
           },
@@ -741,7 +761,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.41.2.15936",
-              "templateHash": "68717503804840913"
+              "templateHash": "15837169801054944999"
             }
           },
           "parameters": {
@@ -762,6 +782,19 @@
               "type": "string",
               "metadata": {
                 "description": "Globally unique App Service Web App name."
+              }
+            },
+            "staticWebAppName": {
+              "type": "string",
+              "metadata": {
+                "description": "Globally unique Static Web App name for the SPA."
+              }
+            },
+            "staticWebAppLocation": {
+              "type": "string",
+              "defaultValue": "westeurope",
+              "metadata": {
+                "description": "Azure region for the Static Web App."
               }
             },
             "peVNETName": {
@@ -822,6 +855,8 @@
                 "siteConfig": {
                   "linuxFxVersion": "NODE|22-lts",
                   "minTlsVersion": "1.2",
+                  "alwaysOn": true,
+                  "healthCheckPath": "/",
                   "appSettings": [
                     {
                       "name": "WEBSITE_NODE_DEFAULT_VERSION",
@@ -908,6 +943,24 @@
                 "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]",
                 "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', parameters('webAppName')))]"
               ]
+            },
+            {
+              "type": "Microsoft.Web/staticSites",
+              "apiVersion": "2024-04-01",
+              "name": "[parameters('staticWebAppName')]",
+              "location": "[parameters('staticWebAppLocation')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Free",
+                "tier": "Free"
+              },
+              "properties": {
+                "stagingEnvironmentPolicy": "Enabled",
+                "allowConfigFileUpdates": true,
+                "buildProperties": {
+                  "skipGithubActionWorkflowGeneration": true
+                }
+              }
             }
           ]
         }

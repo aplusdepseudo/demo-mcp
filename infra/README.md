@@ -14,6 +14,7 @@ Azure **Bicep** infrastructure-as-code templates that provision the complete clo
 | **Azure AI Search** | Search service for vector store connections |
 | **Storage Account** | Blob storage for RAG documents and project data |
 | **App Service** | Linux App Service plan + web app for hosting the MCP server |
+| **Static Web App** | Azure Static Web App for hosting the Vue.js SPA |
 | **Private Endpoints + DNS** | Private connectivity and DNS zones for Foundry, Storage, Search, and Cosmos DB |
 | **Project Connections** | Foundry project connections and `Agents` capability host wiring |
 
@@ -27,7 +28,7 @@ infra/
 ├── foundry.bicep       AI Foundry account, project, Cosmos DB, AI Search,
 │                       Storage, private endpoints, DNS zones, IAM roles,
 │                       project connections, capability host
-├── webapp.bicep        App Service plan (S3) + Linux web app (Node 22 LTS)
+├── webapp.bicep        App Service plan + web app + Static Web App
 ├── main.bicepparam     Parameter values (prefix, location, subnet IDs, tags)
 ├── main.json           Pre-compiled ARM template (for Deploy to Azure button)
 ├── package.json        Deployment scripts (deploy-infra, deploy-app, deploy-agent)
@@ -39,7 +40,7 @@ infra/
 ```
 main.bicep
   ├── foundry.bicep   →  AI Foundry + Cosmos + Search + Storage + networking
-  └── webapp.bicep    →  App Service plan + web app
+  └── webapp.bicep    →  App Service plan + web app + Static Web App
 ```
 
 ---
@@ -54,6 +55,8 @@ main.bicep
 | `peVNETName` | ✅ | Name of the existing VNet for private endpoints |
 | `peSubnetName` | ✅ | Name of the existing subnet for private endpoints |
 | `webAppName` | ✅ | Globally unique name for the App Service web app |
+| `staticWebAppName` | optional | Globally unique name for the Static Web App (default: `${prefix}-swa`) |
+| `staticWebAppLocation` | optional | Azure region for the Static Web App (default: `westeurope`) |
 | `tags` | optional | Resource tags (default: `{}`) |
 
 ---
@@ -135,6 +138,8 @@ All scripts are defined in `package.json` and run from the `infra/` directory:
 | `npm run deploy-agent` | Build the agent and provision it in Foundry |
 | `npm run rebuild-arm` | Recompile `main.bicep` → `main.json` (ARM template) |
 
+> **Note:** SPA deployment scripts (`deploy`, `get-swa-token`) live in [`spa/package.json`](../spa/package.json).
+
 ### Configuration (`package.json > config`)
 
 ```json
@@ -164,9 +169,11 @@ npm run deploy-app
 # 3. Provision the agent in Foundry
 npm run deploy-agent
 
-# 4. Build and deploy the SPA (static hosting)
-cd ../spa && npm run build
-# Deploy dist/ to Azure Static Web Apps, Blob Storage, etc.
+# 4. Deploy the SPA to Static Web App (from spa/ directory)
+cd ../spa
+npm run get-swa-token
+$env:SWA_CLI_DEPLOYMENT_TOKEN="<token>"
+npm run deploy
 ```
 
 > **Note:** The MCP server must be running at its deployed URL before provisioning the agent, since Foundry validates the MCP tool connection at creation time.

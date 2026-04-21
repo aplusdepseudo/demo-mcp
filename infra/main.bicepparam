@@ -12,3 +12,5 @@ param tags = {
   environment: 'dev'
   project: 'mcp-demo-fullprivate'
 }
+
+param staticWebAppLocation = 'westeurope'

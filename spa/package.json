@@ -4,10 +4,17 @@
   "private": true,
   "type": "module",
   "description": "Vue.js SPA for RFP documentation generation using Azure AI Foundry agent",
+  "config": {
+    "resourceGroup": "demo-agentic-rg",
+    "resourceStaticWebApp": "demo-agentic-swa"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "swa deploy --output-location ./dist --env production",
+    "get-swa-token": "az staticwebapp secrets list --name %npm_package_config_resourceStaticWebApp% --resource-group %npm_package_config_resourceGroup% --query properties.apiKey -o tsv"
   },
   "dependencies": {
     "@azure/ai-projects": "^2.0.2",
@@ -16,6 +23,7 @@
     "vue": "^3.5.17"
   },
   "devDependencies": {
+    "@azure/static-web-apps-cli": "^2.0.9",
     "@vitejs/plugin-vue": "^5.2.3",
     "typescript": "^5.8.3",
     "vite": "^6.3.3"

@@ -39,8 +39,8 @@ Thanks to Lucas for the original MCP server repository that served as a starting
 |-----------|-----------|-------------|
 | [`mcp/`](mcp/) | **MCP Server** | Stateless Node.js server exposing mock procurement data (suppliers, POs, invoices, contracts, RFPs, risk scores) as MCP tools over Streamable HTTP |
 | [`agent/`](agent/) | **Agent Provisioner** | TypeScript CLI that provisions the RFP agent in Azure AI Foundry with file_search (RAG) and MCP tool connections |
-| [`spa/`](spa/) | **Frontend SPA** | Vue.js 3 static frontend — authenticates via MSAL, drives the Foundry conversation, and renders structured results |
-| [`infra/`](infra/) | **Infrastructure** | Azure Bicep templates to provision AI Foundry, App Service, Cosmos DB, AI Search, Storage, and private networking |
+| [`spa/`](spa/) | **Frontend SPA** | Vue.js 3 static frontend hosted on Azure Static Web Apps — authenticates via MSAL, drives the Foundry conversation, and renders structured results |
+| [`infra/`](infra/) | **Infrastructure** | Azure Bicep templates to provision AI Foundry, App Service, Static Web App, Cosmos DB, AI Search, Storage, and private networking |
 
 ---
 
@@ -77,22 +77,32 @@ cp .env.example .env    # Set FOUNDRY_PROJECT_ENDPOINT, FOUNDRY_MODEL_NAME, MCP_
 npm install && npm start
 ```
 
-### 4) Run the SPA
+### 4) Deploy the SPA
 
 ```bash
 cd spa
 cp .env.example .env    # Set VITE_FOUNDRY_PROJECT_ENDPOINT, VITE_ENTRA_CLIENT_ID, VITE_ENTRA_TENANT_ID
-npm install && npm run dev
+npm install && npm run build
+
+# Retrieve the Static Web App deployment token
+npm run get-swa-token
+$env:SWA_CLI_DEPLOYMENT_TOKEN="<token>"
+
+npm run deploy          # Deploys dist/ to Azure Static Web App
 ```
 
-Open **http://localhost:5173** — enter an RFP topic, budget, and agent name, then click **Generate**.
+For local development:
+
+```bash
+npm run dev             # Vite dev server at http://localhost:5173
+```
 
 ---
 
 ## 🔄 End-to-End Flow
 
 ```
-1. Infrastructure deployed (Bicep)  →  AI Foundry + App Service + networking
+1. Infrastructure deployed (Bicep)  →  AI Foundry + App Service + Static Web App + networking
 2. MCP server deployed              →  Procurement tools available at /mcp
 3. Agent provisioned                →  Agent created in Foundry with tools
 4. User opens SPA                   →  Authenticates via MSAL (Entra ID)
@@ -110,7 +120,7 @@ Open **http://localhost:5173** — enter an RFP topic, budget, and agent name, t
 | MCP Server | Node.js, Express, TypeScript, MCP SDK, Zod |
 | Agent | TypeScript, Azure AI Foundry SDK (`@azure/ai-projects`), ExcelJS |
 | Frontend | Vue.js 3, Vite, MSAL Browser |
-| Infrastructure | Azure Bicep, AI Foundry, App Service, Cosmos DB, AI Search |
+| Infrastructure | Azure Bicep, AI Foundry, App Service, Static Web Apps, Cosmos DB, AI Search |
 | Authentication | Entra ID (MSAL) + `DefaultAzureCredential` |
 
 ---
@@ -138,7 +148,7 @@ Open **http://localhost:5173** — enter an RFP topic, budget, and agent name, t
 └── infra/                  Azure Bicep infrastructure
     ├── main.bicep          Orchestrator module
     ├── foundry.bicep       AI Foundry + networking
-    ├── webapp.bicep        App Service
+    ├── webapp.bicep        App Service + Static Web App
     └── main.bicepparam     Parameter values
 ```
 

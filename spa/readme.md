@@ -109,7 +109,7 @@ npm run build     # Builds the Vue SPA → dist/
 npm run preview   # Preview the production build locally
 ```
 
-The `dist/` folder can be deployed to any static hosting service (Azure Static Web Apps, Blob Storage, Netlify, etc.).
+The `dist/` folder is deployed to **Azure Static Web Apps** (see [Deployment](#-deployment) below).
 
 ---
 
@@ -160,5 +160,43 @@ Uses **MSAL browser** (`@azure/msal-browser`) for Entra ID authentication:
 - **App registration** with SPA redirect URI (`http://localhost:5173` for dev)
 - **API permission**: Azure AI (`https://ai.azure.com/.default`)
 - The user must have **Azure AI User** role on the Foundry project resource
+
+---
+
+## 🚀 Deployment
+
+The SPA is deployed to an **Azure Static Web App** provisioned by the Bicep templates in `infra/`.
+
+### Prerequisites
+
+1. The Static Web App resource has been created via `cd infra && npm run deploy-infra`.
+2. The SPA environment variables are configured in `.env` (Vite bakes them into the bundle at build time).
+
+### 1) Retrieve the deployment token
+
+```bash
+npm run get-swa-token
+```
+
+### 2) Set the token as an environment variable
+
+```bash
+$env:SWA_CLI_DEPLOYMENT_TOKEN="<token>"
+```
+
+### 3) Build and deploy
+
+```bash
+npm run deploy     # Runs predeploy (build) then deploys dist/ to Static Web App
+```
+
+### Configuration (`package.json > config`)
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `resourceGroup` | `demo-agentic-rg` | Azure resource group containing the Static Web App |
+| `resourceStaticWebApp` | `demo-agentic-swa` | Name of the Static Web App resource |
+
+Update these values to match your Azure environment.
 
 ---
